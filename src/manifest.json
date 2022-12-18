@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Time Protector",
+  "version":"1.0.0",
+  "description": "Productivity extension to reduce procastination",
+  "icons": {
+    "16": "shield.png",
+    "48": "shield.png",
+    "128": "shield.png"
+  },
+  "action":{
+    "default_title": "Time Protector Action Title",
+    "default_popup": "./popup/popup.html",
+    "default_icon":{
+      "16": "shield.png",
+      "48": "shield.png",
+      "128": "shield.png"
+    }
+  },
+  "options_page": "./options/options.html",
+  "permissions": ["storage","tabs","alarms","notifications","windows"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
