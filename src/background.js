@@ -1,38 +1,41 @@
-async function main() {
+chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remainingTime"]).then(({maxAllowedTime,restrictedSites,remainingTime,today})=>
+{
+    console.log("totes les variables en bckground\n",{maxAllowedTime,restrictedSites,remainingTime,today});
+    
     const dayToday = new Date().getDay();
-    const { twitter, today } = await chrome.storage.local.get(["twitter", "today"]);
-    let twitterTimer = typeof twitter === "number" ? twitter : 0;
-    console.log({ twitter, today, twitterTimer });
+
+    let remainingTimer = typeof remainingTime === "number" ? remainingTime : maxAllowedTime ?? 9999;
+
     if (today !== dayToday) {
-        console.log("els dies son diferents y la variable de temps es resetea");
-        twitterTimer = 0;
-    } else {
-        console.log("estem en el mateix dia y la variable es queda igual");
-    }
-    let twitterActive = false;
+        remainingTimer = maxAllowedTime ?? 9999;
+    }     
+
+    let restrictedWebsiteActive = false;
     let interValEnd;
+
 
 
     function readTabName(t) {
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
             console.log(tabs[0]?.url);
-            if (tabs[0]?.url.includes("twitter")) {
+            if (restrictedSites.split(',').some(w=>tabs[0]?.url.includes(w))){
+                console.log("ENTRAAA!!")
                 console.log("la boleana de interbal id", !Boolean(interValEnd));
                 if (!Boolean(interValEnd)) {
-                    chrome.storage.local.get(["twitter","today"]).then(console.log)
-                    twitterActive = true;
-                    console.log("interval estaba buit i ne tinc que crear uno nou");
+                    chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
+                    restrictedWebsiteActive = true;
+      
                     creteInterVal()
                 }
             } else {
-                console.log("are tindria que borrar o no tocar el intervalo");
-                twitterActive = false;
+     
+                restrictedWebsiteActive = false;
                 chrome.storage.local.set({
-                    "twitter": twitterTimer,
+                    "remainingTime": remainingTimer,
                     "today": dayToday
 
                 });
-                chrome.storage.local.get(["twitter","today"]).then(console.log)
+                chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
                 Boolean(interValEnd) && clearRequestedInterval(interValEnd);
             }
         }
@@ -40,27 +43,22 @@ async function main() {
     }
 
     function creteInterVal() {
-        console.log("intervalEnd a boleana per a saber si ja existeix", Boolean(interValEnd));
         if (Boolean(interValEnd)) return;
         console.log("create Interval s ha cridat");
         interValEnd = setInterval(() => {
-            twitterActive && (twitterTimer += 1);
+            restrictedWebsiteActive && (remainingTimer -= 10);
             chrome.action.setBadgeText({
-                text: `${twitterTimer}` // dividir entre 60 si vull traure els minuts
+                text: `${remainingTimer}` // dividir entre 60 si vull traure els minuts
             });
-            if (twitterActive && twitterTimer >= 1800) {
+            if (restrictedWebsiteActive && remainingTimer <= 0) {
                 createAlarm()
-                chrome.storage.local.get(["twitter","today"]).then(console.log)
+                chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
 
 
             }
-            console.log({ dayToday, twitterActive, twitterTimer });
-        }, 1000);
+            console.log({ dayToday, twitterActive: restrictedWebsiteActive, twitterTimer: remainingTimer });
+        }, 10000);
     }
-
-
-
-
 
     function createAlarm() {
         chrome.alarms.create({
@@ -68,7 +66,6 @@ async function main() {
         });
     }
     function clearRequestedInterval(clearRequestedInterval) {
-        console.log(`borrant interval ${clearRequestedInterval}`);
         clearInterval(clearRequestedInterval);
         interValEnd = undefined;
         console.log("intervalEnd despues de borrarla val ", interValEnd);
@@ -80,12 +77,16 @@ async function main() {
 
     chrome.runtime.onSuspend.addListener(() => {
         chrome.storage.local.set({
-            "twitter": twitterTimer,
+            "remainingTime": remainingTimer,
             "today": dayToday
         });
         clearRequestedInterval(interValEnd)
 
     });
+    chrome.runtime.onMessage.addListener((msg)=>{
+        console.log(msg);
+        console.log("pong");
+    })
 
     chrome.alarms.onAlarm.addListener((alarm) => {
         this.registration.showNotification("Time Guardian Extension", {
@@ -93,7 +94,14 @@ async function main() {
             icon: "shield.png"
         });
     });
-}
 
-
-main()
+    var wakeup = function () {
+        setTimeout(function () {
+            chrome.runtime.sendMessage('ping', function () {
+                console.log("ping");
+            });
+            wakeup();
+        }, 10000);
+    }
+    wakeup();
+});

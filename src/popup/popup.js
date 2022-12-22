@@ -1,33 +1,70 @@
-var div=document.createElement("div"); 
+const sitesArea = document.getElementById("sites");
+const limitedUrlInput = document.getElementById("limited-url-input");
+const timeInput = document.getElementById("time-input");
+const listaUrls = document.getElementById("lista-urls");
+const submitButton = document.getElementById("submit-button");
 
-// chrome.tabs.query({ active: true, currentWindow: true }).then(tabs =>urlVisited.textContent = tabs[0].url);
-// window.addEventListener("visibilitychange",()=>{
-//   console.log(location.href);
-// });
+let protectedSites = "";
 
-
-// const timeElement = document.getElementById("time");
-// const nameElement = document.getElementById("name");
-// const timerElement = document.getElementById("timer");
-// console.log(timer);
+chrome.storage.local.get(["restrictedSites", "maxAllowedTime"]).then(({maxAllowedTime,restrictedSites})=>{
 
 
-// function updateTimeElements(){  
-//   chrome.storage.local.get(["timer"], (res)=> {
-//     const time = res.timer ?? 0;
-//     timerElement.textContent = ` The timer is at ${time} seconds`;
-//   });
+  protectedSites+=restrictedSites;
+  timeInput.value=maxAllowedTime;
+
+  if(protectedSites.length>1){
+  protectedSites.split(',').forEach(s=>addNewUrlListItem(s));
+  }
   
-//   const currentTime = new Date().toLocaleTimeString();
-//   timeElement.textContent = `The time is ${currentTime}`
-// }
-// updateTimeElements()
-// setInterval(updateTimeElements,1000);
+  
+  submitButton.addEventListener("click", (e)=>{
+    e.preventDefault();
+    let url = limitedUrlInput.value;
+    if(url.includes('.')){
+      const splitUrl = url.split('.');
+      splitUrl.length <= 2 ? url =splitUrl[0] : url =splitUrl[1];    
+    };
 
-// chrome.action.setBadgeText({
-//   text: "TIME"
-// });
+    addNewUrlListItem(url);  
 
-// chrome.storage.local.get(["name"], (res)=> {
-//   nameElement.textContent = `Your name is: ${res.name ?? "not set yet"}`;
-// });
+    protectedSites === "" ? protectedSites+=url : protectedSites+=','+url;
+
+    chrome.storage.local.set({
+      "restrictedSites":protectedSites,
+      "maxAllowedTime":timeInput.value
+    });
+
+  });
+
+
+  function addNewUrlListItem(name){
+    
+    const websiteListItem = document.createElement('li');
+    websiteListItem.textContent =name
+    listaUrls.appendChild(websiteListItem);
+    websiteListItem.addEventListener("click", ()=>{
+      websiteListItem.remove();
+      protectedSites =protectedSites.replace(name,"").replace(",,",',').replace(/^,/, "");
+
+      chrome.storage.local.set({
+        "restrictedSites":protectedSites.trim(),
+        "maxAllowedTime":timeInput.value
+      });
+
+    })
+  }
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+

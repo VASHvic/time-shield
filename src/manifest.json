@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Time Protector",
+  "name": "Time Shield",
   "version":"1.0.0",
   "description": "Productivity extension to reduce procastination",
   "icons": {
@@ -20,6 +20,5 @@
   "options_page": "./options/options.html",
   "permissions": ["storage","tabs","alarms","notifications","windows"],
   "background": {
-    "service_worker": "background.js"
-  }
+    "service_worker": "background.js"  }
 }

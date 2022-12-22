@@ -8,8 +8,27 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>Time Protector</h1>
-  <h2 id="url-visited"></h2>
+  <div id="title-area">
+    <img src="../shield.png" alt="image of a time protector">
+    <h1>Time Shield</h1>
+  </div>
+  <form>
+    <div class="form-group">
+      <label for="url">Name a website you want me to protect you from it! </label><br>
+      <input type="text" id="limited-url-input" name="url"><br>
+    </div>
+    <div class="form-group">
+      <label for="time">Enter the maximum allowed daily minutes</label><br>
+      <input type="number" id="time-input" name="time"><br>
+    </div>
+    <div class="form-group">
+      <button type="submit" id="submit-button">Save</button>
+    </div>
+  </form> 
+  <article id="sites">
+    <ul id="lista-urls"></ul>
+  </article>
 </body>
+
 <script src="popup.js"></script>
 </html>
