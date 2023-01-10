@@ -4,14 +4,25 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
     
     const dayToday = new Date().getDay();
 
-    let remainingTimer = typeof remainingTime === "number" ? remainingTime : maxAllowedTime ?? 9999;
+    let remainingTimer;
+
+    if(typeof remainingTime === "number") {
+
+        if(maxAllowedTime <  remainingTime){
+            remainingTimer = maxAllowedTime;
+        }else {
+            remainingTimer = remainingTime;
+        }
+    }else{
+        remainingTimer = 9999;
+    }
 
     if (today !== dayToday) {
         remainingTimer = maxAllowedTime ?? 9999;
     }     
 
-    let restrictedWebsiteActive = false;
-    let interValEnd;
+    let restrictedWebsiteActive = false;    
+    let interValEnd; // This will store the id of the intervals to call clearInterval
 
 
 
@@ -19,9 +30,8 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
             console.log(tabs[0]?.url);
             if (restrictedSites.split(',').some(w=>tabs[0]?.url.includes(w))){
-                console.log("ENTRAAA!!")
-                console.log("la boleana de interbal id", !Boolean(interValEnd));
                 if (!Boolean(interValEnd)) {
+                    console.log("La web esta prohibida");
                     chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
                     restrictedWebsiteActive = true;
       
@@ -35,6 +45,7 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
                     "today": dayToday
 
                 });
+                console.log("La web no esta prohibida, vaiga cancelar el intervalo");
                 chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
                 Boolean(interValEnd) && clearRequestedInterval(interValEnd);
             }
@@ -44,19 +55,20 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
 
     function creteInterVal() {
         if (Boolean(interValEnd)) return;
-        console.log("create Interval s ha cridat");
         interValEnd = setInterval(() => {
+            console.log("aso es dins del callback del interbbal");
             restrictedWebsiteActive && (remainingTimer -= 10);
             chrome.action.setBadgeText({
-                text: `${remainingTimer}` // dividir entre 60 si vull traure els minuts
+                text: `${Math.floor(remainingTimer / 60) + 'm'}`
             });
-            if (restrictedWebsiteActive && remainingTimer <= 0) {
-                createAlarm()
-                chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
-
-
+            console.log("remainingTmer 👀",remainingTimer);
+            if(remainingTimer < 100){
+                console.log("deuria cambiar el badge a roig pero no va");
+                chrome.action.setBadgeBackgroundColor({color: '#FF0000'});
+                if (restrictedWebsiteActive && remainingTimer <= 0) {
+                    createAlarm();
+                }
             }
-            console.log({ dayToday, twitterActive: restrictedWebsiteActive, twitterTimer: remainingTimer });
         }, 10000);
     }
 
@@ -68,7 +80,6 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
     function clearRequestedInterval(clearRequestedInterval) {
         clearInterval(clearRequestedInterval);
         interValEnd = undefined;
-        console.log("intervalEnd despues de borrarla val ", interValEnd);
     }
 
     chrome.windows.onFocusChanged.addListener(readTabName);
@@ -84,21 +95,22 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remaini
 
     });
     chrome.runtime.onMessage.addListener((msg)=>{
-        console.log(msg);
+        console.log({msg});
         console.log("pong");
     })
 
     chrome.alarms.onAlarm.addListener((alarm) => {
-        this.registration.showNotification("Time Guardian Extension", {
-            body: "Close Twitter",
+        this.registration.showNotification("Time Shield Extension", {
+            body: "Time to close that tab",
             icon: "shield.png"
         });
     });
 
-    var wakeup = function () {
+     var wakeup = function () {
         setTimeout(function () {
             chrome.runtime.sendMessage('ping', function () {
                 console.log("ping");
+                chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remainingTime"]).then(console.log)
             });
             wakeup();
         }, 10000);

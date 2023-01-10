@@ -4,13 +4,13 @@ const timeInput = document.getElementById("time-input");
 const listaUrls = document.getElementById("lista-urls");
 const submitButton = document.getElementById("submit-button");
 
-let protectedSites = "";
+let protectedSites = '';
 
 chrome.storage.local.get(["restrictedSites", "maxAllowedTime"]).then(({maxAllowedTime,restrictedSites})=>{
 
 
-  protectedSites+=restrictedSites;
-  timeInput.value=maxAllowedTime;
+  protectedSites+=restrictedSites ?? '';
+  timeInput.value=maxAllowedTime ?? 1800;
 
   if(protectedSites.length>1){
   protectedSites.split(',').forEach(s=>addNewUrlListItem(s));
@@ -42,18 +42,20 @@ chrome.storage.local.get(["restrictedSites", "maxAllowedTime"]).then(({maxAllowe
     const websiteListItem = document.createElement('li');
     websiteListItem.textContent =name
     listaUrls.appendChild(websiteListItem);
+    
+
     websiteListItem.addEventListener("click", ()=>{
       websiteListItem.remove();
       protectedSites =protectedSites.replace(name,"").replace(",,",',').replace(/^,/, "");
-
       chrome.storage.local.set({
         "restrictedSites":protectedSites.trim(),
         "maxAllowedTime":timeInput.value
+      }).then(r=>{
+        console.log("S han guardar les variables ara vaig a getearles");
+        chrome.storage.local.get(["restrictedSites", "maxAllowedTime"]).then(console.log)
       });
-
     })
   }
-
 });
 
 
