@@ -2,7 +2,7 @@
 let isAppRunning = false;
 
 chrome.runtime.onMessage.addListener(
-  (request, sender, sendResponse) => {
+  (request) => {
     if (request.message === 'runBackground') {
       console.log('Running background');
       if (isAppRunning === false) {
@@ -55,6 +55,7 @@ function runBackground() {
     ping();
 
     function readTabName(t) {
+      console.log({ tab: t });
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         console.log(tabs[0]?.url);
         if (restrictedSites.some((w) => tabs[0]?.url.includes(w))) {
@@ -103,21 +104,21 @@ function runBackground() {
       intervalId = undefined;
     }
 
-    function calculateRemainingTimer(remainingTime, maxAllowedTime, today, dayToday) {
+    function calculateRemainingTimer(remaining, max, savedDay, currentDay) {
       let remainingTimer;
 
-      if (typeof remainingTime === 'number') {
-        if (maxAllowedTime < remainingTime) {
-          remainingTimer = maxAllowedTime;
+      if (typeof remaining === 'number') {
+        if (max < remaining) {
+          remainingTimer = max;
         } else {
-          remainingTimer = remainingTime;
+          remainingTimer = remaining;
         }
       } else {
         remainingTimer = 9999;
       }
 
-      if (today !== dayToday) {
-        remainingTimer = maxAllowedTime ?? 9999;
+      if (savedDay !== currentDay) {
+        remainingTimer = max ?? 9999;
       }
 
       return remainingTimer;
@@ -144,5 +145,3 @@ function ping() {
     ping();
   }, 10000);
 }
-
-function 

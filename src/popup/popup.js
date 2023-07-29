@@ -9,8 +9,8 @@ const submitButton = document.getElementById('submit-button');
 // Variables
 let protectedSites = [];
 
-// Clear storage
-// clearStorage();
+// DEBUG
+// chrome.storage.local.clear();
 
 // Get stored data and setup
 main();
@@ -82,10 +82,6 @@ function updateStorage() {
     restrictedSites: protectedSites,
     maxAllowedTime: timeInput.value,
   });
-}
-
-function clearStorage() {
-  chrome.storage.local.clear();
 }
 
 function sendWorkerMessage() {
