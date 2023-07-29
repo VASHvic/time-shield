@@ -1,119 +1,148 @@
-chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remainingTime"]).then(({maxAllowedTime,restrictedSites,remainingTime,today})=>
-{
-    console.log("totes les variables en bckground\n",{maxAllowedTime,restrictedSites,remainingTime,today});
-    
+/* global chrome */
+let isAppRunning = false;
+
+chrome.runtime.onMessage.addListener(
+  (request, sender, sendResponse) => {
+    if (request.message === 'runBackground') {
+      console.log('Running background');
+      if (isAppRunning === false) {
+        runBackground();
+        isAppRunning = true;
+      }
+    }
+    if (request.message === 'ping') {
+      console.log('pong');
+    }
+  },
+);
+
+function runBackground() {
+  chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(({
+    maxAllowedTime, restrictedSites, remainingTime, today,
+  }) => {
+    console.log('All variables in background\n', {
+      maxAllowedTime, restrictedSites, remainingTime, today,
+    });
+
     const dayToday = new Date().getDay();
 
-    let remainingTimer;
+    let remainingSeconds = calculateRemainingTimer(remainingTime, maxAllowedTime, today, dayToday);
 
-    if(typeof remainingTime === "number") {
-
-        if(maxAllowedTime <  remainingTime){
-            remainingTimer = maxAllowedTime;
-        }else {
-            remainingTimer = remainingTime;
-        }
-    }else{
-        remainingTimer = 9999;
-    }
-
-    if (today !== dayToday) {
-        remainingTimer = maxAllowedTime ?? 9999;
-    }     
-
-    let restrictedWebsiteActive = false;    
-    let interValEnd; // This will store the id of the intervals to call clearInterval
-
-
-
-    function readTabName(t) {
-        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            console.log(tabs[0]?.url);
-            if (restrictedSites.split(',').some(w=>tabs[0]?.url.includes(w))){
-                if (!Boolean(interValEnd)) {
-                    console.log("La web esta prohibida");
-                    chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
-                    restrictedWebsiteActive = true;
-      
-                    creteInterVal()
-                }
-            } else {
-     
-                restrictedWebsiteActive = false;
-                chrome.storage.local.set({
-                    "remainingTime": remainingTimer,
-                    "today": dayToday
-
-                });
-                console.log("La web no esta prohibida, vaiga cancelar el intervalo");
-                chrome.storage.local.get(["remainingTime", "today"]).then(console.log)
-                Boolean(interValEnd) && clearRequestedInterval(interValEnd);
-            }
-        }
-        )
-    }
-
-    function creteInterVal() {
-        if (Boolean(interValEnd)) return;
-        interValEnd = setInterval(() => {
-            console.log("aso es dins del callback del interbbal");
-            restrictedWebsiteActive && (remainingTimer -= 10);
-            chrome.action.setBadgeText({
-                text: `${Math.floor(remainingTimer / 60) + 'm'}`
-            });
-            console.log("remainingTmer 👀",remainingTimer);
-            if(remainingTimer < 100){
-                console.log("deuria cambiar el badge a roig pero no va");
-                chrome.action.setBadgeBackgroundColor({color: '#FF0000'});
-                if (restrictedWebsiteActive && remainingTimer <= 0) {
-                    createAlarm();
-                }
-            }
-        }, 10000);
-    }
-
-    function createAlarm() {
-        chrome.alarms.create({
-            when: new Date().getMilliseconds()
-        });
-    }
-    function clearRequestedInterval(clearRequestedInterval) {
-        clearInterval(clearRequestedInterval);
-        interValEnd = undefined;
-    }
+    let isRestrictedWebsiteActive = false;
+    let intervalId; // This will store the id of the intervals to call clearInterval
 
     chrome.windows.onFocusChanged.addListener(readTabName);
-
     chrome.tabs.onActivated.addListener(readTabName);
-
     chrome.runtime.onSuspend.addListener(() => {
-        chrome.storage.local.set({
-            "remainingTime": remainingTimer,
-            "today": dayToday
-        });
-        clearRequestedInterval(interValEnd)
-
+      chrome.storage.local.set({
+        remainingTime: remainingSeconds,
+        today: dayToday,
+      });
+      clearRequestedInterval(intervalId);
     });
-    chrome.runtime.onMessage.addListener((msg)=>{
-        console.log({msg});
-        console.log("pong");
-    })
-
-    chrome.alarms.onAlarm.addListener((alarm) => {
-        this.registration.showNotification("Time Shield Extension", {
-            body: "Time to close that tab",
-            icon: "shield.png"
-        });
+    chrome.runtime.onMessage.addListener((msg) => {
+      console.log({ msg });
+      console.log('pong');
+    });
+    chrome.alarms.onAlarm.addListener(() => {
+      this.registration.showNotification('Time Shield Extension', {
+        body: 'Time to close that tab',
+        icon: 'shield.png',
+      });
     });
 
-     var wakeup = function () {
-        setTimeout(function () {
-            chrome.runtime.sendMessage('ping', function () {
-                console.log("ping");
-                chrome.storage.local.get(["restrictedSites", "maxAllowedTime", "today", "remainingTime"]).then(console.log)
-            });
-            wakeup();
-        }, 10000);
+    // Initialize recursive ping
+    ping();
+
+    function readTabName(t) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        console.log(tabs[0]?.url);
+        if (restrictedSites.some((w) => tabs[0]?.url.includes(w))) {
+          if (!intervalId) {
+            console.log('The website is restricted');
+            chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
+            isRestrictedWebsiteActive = true;
+
+            createInterval();
+          }
+        } else {
+          isRestrictedWebsiteActive = false;
+          chrome.storage.local.set({
+            remainingTime: remainingSeconds,
+            today: dayToday,
+
+          });
+          console.log(`The website is not restricted, canceling the interval${intervalId}`);
+          chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
+          if (intervalId) {
+            clearRequestedInterval(intervalId);
+          }
+        }
+      });
     }
-    wakeup();
-});
+
+    function createInterval() {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        if (isRestrictedWebsiteActive) remainingSeconds -= 10;
+        chrome.action.setBadgeText({
+          text: `${`${Math.floor(remainingSeconds / 60)}m`}`,
+        });
+        console.log('remainingTimer 👀', remainingSeconds);
+        if (remainingSeconds < 100) {
+          chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+          if (isRestrictedWebsiteActive && remainingSeconds <= 0) {
+            createAlarm();
+          }
+        }
+      }, 10000);
+    }
+
+    function clearRequestedInterval(intervalIdToDelete) {
+      clearInterval(intervalIdToDelete);
+      intervalId = undefined;
+    }
+
+    function calculateRemainingTimer(remainingTime, maxAllowedTime, today, dayToday) {
+      let remainingTimer;
+
+      if (typeof remainingTime === 'number') {
+        if (maxAllowedTime < remainingTime) {
+          remainingTimer = maxAllowedTime;
+        } else {
+          remainingTimer = remainingTime;
+        }
+      } else {
+        remainingTimer = 9999;
+      }
+
+      if (today !== dayToday) {
+        remainingTimer = maxAllowedTime ?? 9999;
+      }
+
+      return remainingTimer;
+    }
+  });
+}
+
+function createAlarm() {
+  chrome.alarms.create({
+    when: new Date().getMilliseconds(),
+  });
+}
+function printStorage() {
+  console.log('STORAGE: ');
+  chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(console.log);
+}
+
+function ping() {
+  setTimeout(() => {
+    chrome.runtime.sendMessage('ping', () => {
+      console.log('ping');
+      printStorage();
+    });
+    ping();
+  }, 10000);
+}
+
+function 

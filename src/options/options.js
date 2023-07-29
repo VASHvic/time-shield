@@ -1,12 +1,14 @@
-const nameInput = document.getElementById("name-input");
-const saveBtn = document.getElementById("save-btn");
+/* global chrome */
 
-saveBtn.addEventListener("click",()=> {
+const saveBtn = document.getElementById('save-btn');
+const nameInput = document.getElementById('name-input');
+
+saveBtn.addEventListener('click', () => {
+  console.log('Options.js');
   const name = nameInput.value;
 
   chrome.storage.local.set({
-    name
+    name,
   });
-  nameInput.value = res.name;
-
+  nameInput.value = name; // antes tenia res.name
 });

@@ -1,2 +1,3 @@
 # Bugs
-- No está enviant alarmes al baixar de 0
+# TODO
+- Mostrar en el popup el max y el current y els minuts correctament

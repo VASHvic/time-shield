@@ -89,5 +89,7 @@ li {
   text-decoration-color: rgb(177,205,180);
   /* display:inline-block;
   white-space: nowrap; */
-  
+}
+li:hover {
+  cursor: pointer;
 }
