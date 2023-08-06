@@ -8,7 +8,7 @@ const submitButton = document.getElementById('submit-button');
 
 // Variables
 let protectedSites = [];
-
+const currentMaxAllowedTime = timeInput.value;
 // DEBUG
 // chrome.storage.local.clear();
 
@@ -19,13 +19,14 @@ main();
 submitButton.addEventListener('click', handleSubmit);
 
 function main() {
+  console.log('pop up main function running');
   chrome.storage.local.get(['restrictedSites', 'maxAllowedTime'])
     .then(({ maxAllowedTime, restrictedSites }) => {
       protectedSites = restrictedSites ?? [];
-      timeInput.value = maxAllowedTime ?? 1800;
+      timeInput.value = secondsToMinutes(maxAllowedTime ?? 1800);
       if (protectedSites.length > 0) {
         displaySites();
-        sendWorkerMessage();
+        sendWorkerMessage('runBackground');
       }
     });
 }
@@ -59,13 +60,16 @@ function removeListItem(item, name) {
 }
 
 function handleSubmit(e) {
+  console.log('pasa per update storage');
   e.preventDefault();
-  const url = getUrl();
-  addNewUrlListItem(url);
-  protectedSites.push(url);
+  if (limitedUrlInput.value) {
+    const url = getUrl();
+    addNewUrlListItem(url);
+    protectedSites.push(url);
+  }
   updateStorage();
   limitedUrlInput.value = '';
-  sendWorkerMessage();
+  sendWorkerMessage('runBackground');
 }
 
 function getUrl() {
@@ -78,12 +82,30 @@ function getUrl() {
 }
 
 function updateStorage() {
+  const maxAllowedSeconds = String(parseInt(timeInput.value, 10) * 60);
   chrome.storage.local.set({
     restrictedSites: protectedSites,
-    maxAllowedTime: timeInput.value,
+    maxAllowedTime: maxAllowedSeconds,
   });
+  if (isMaxAllowedTimeChange()) {
+    console.log('Max allowed time changed');
+    chrome.storage.local.set({
+      remainingTime: maxAllowedSeconds,
+    });
+    sendWorkerMessage('updateTimer');
+  } else {
+    console.log('Max time stays the same');
+  }
 }
 
-function sendWorkerMessage() {
-  chrome.runtime.sendMessage({ message: 'runBackground' });
+function sendWorkerMessage(msg) {
+  console.log('sending worker message');
+  chrome.runtime.sendMessage({ message: msg });
+}
+
+function isMaxAllowedTimeChange() {
+  return currentMaxAllowedTime !== timeInput.value;
+}
+function secondsToMinutes(seconds) {
+  return String(parseInt(seconds, 10) / 60);
 }

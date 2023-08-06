@@ -1,10 +1,12 @@
 /* global chrome */
 let isAppRunning = false;
+let readingTabName = false;
+let remainingSeconds;
 
 chrome.runtime.onMessage.addListener(
   (request) => {
     if (request.message === 'runBackground') {
-      console.log('Running background');
+      console.log('Running background in background.js');
       if (isAppRunning === false) {
         runBackground();
         isAppRunning = true;
@@ -12,6 +14,13 @@ chrome.runtime.onMessage.addListener(
     }
     if (request.message === 'ping') {
       console.log('pong');
+    }
+    if (request.message === 'updateTimer') {
+      console.log('updating timer');
+      chrome.storage.local.get('maxAllowedTime').then(({ maxAllowedTime }) => {
+        remainingSeconds = parseInt(maxAllowedTime, 10);
+        console.log(`remainingSeconds desde el listener ${remainingSeconds}`);
+      });
     }
   },
 );
@@ -26,13 +35,15 @@ function runBackground() {
 
     const dayToday = new Date().getDay();
 
-    let remainingSeconds = calculateRemainingTimer(remainingTime, maxAllowedTime, today, dayToday);
+    remainingSeconds = calculateRemainingTimer(remainingTime, maxAllowedTime, today, dayToday);
 
     let isRestrictedWebsiteActive = false;
     let intervalId; // This will store the id of the intervals to call clearInterval
 
     chrome.windows.onFocusChanged.addListener(readTabName);
     chrome.tabs.onActivated.addListener(readTabName);
+    chrome.tabs.onCreated.addListener(readTabName);
+    chrome.tabs.onUpdated.addListener(readTabName);
     chrome.runtime.onSuspend.addListener(() => {
       chrome.storage.local.set({
         remainingTime: remainingSeconds,
@@ -55,7 +66,8 @@ function runBackground() {
     ping();
 
     function readTabName(t) {
-      console.log({ tab: t });
+      if (readingTabName) return;
+      readingTabName = true;
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         console.log(tabs[0]?.url);
         if (restrictedSites.some((w) => tabs[0]?.url.includes(w))) {
@@ -63,7 +75,6 @@ function runBackground() {
             console.log('The website is restricted');
             chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
             isRestrictedWebsiteActive = true;
-
             createInterval();
           }
         } else {
@@ -80,6 +91,7 @@ function runBackground() {
           }
         }
       });
+      readingTabName = false;
     }
 
     function createInterval() {
@@ -106,7 +118,7 @@ function runBackground() {
 
     function calculateRemainingTimer(remaining, max, savedDay, currentDay) {
       let remainingTimer;
-
+      if (typeof remaining === 'string') parseInt(remaining, 10);
       if (typeof remaining === 'number') {
         if (max < remaining) {
           remainingTimer = max;
