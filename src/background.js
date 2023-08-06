@@ -66,6 +66,7 @@ function runBackground() {
     ping();
 
     function readTabName(t) {
+      // TODO: i have to read the restricted site array
       if (readingTabName) return;
       readingTabName = true;
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
