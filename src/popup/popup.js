@@ -8,10 +8,10 @@ const submitButton = document.getElementById('submit-button');
 
 // Variables
 let protectedSites = [];
-const currentMaxAllowedTime = timeInput.value;
+let currentMaxAllowedTime;
 // DEBUG
 // chrome.storage.local.clear();
-
+const debug = document.getElementById('debug');
 // Get stored data and setup
 main();
 
@@ -24,6 +24,7 @@ function main() {
     .then(({ maxAllowedTime, restrictedSites }) => {
       protectedSites = restrictedSites ?? [];
       timeInput.value = secondsToMinutes(maxAllowedTime ?? 1800);
+      currentMaxAllowedTime = timeInput.value;
       if (protectedSites.length > 0) {
         displaySites();
         sendWorkerMessage('runBackground');
@@ -104,6 +105,8 @@ function sendWorkerMessage(msg) {
 }
 
 function isMaxAllowedTimeChange() {
+  // debug.value = `currentMax:${currentMaxAllowedTime}-timeinputValue:${timeInput.value}`;
+  debug.value = currentMaxAllowedTime === timeInput.value;
   return currentMaxAllowedTime !== timeInput.value;
 }
 function secondsToMinutes(seconds) {
