@@ -105,6 +105,7 @@ function runBackground() {
         });
         console.log('remainingTimer 👀', remainingSeconds);
         if (remainingSeconds < (5 * 60)) {
+          // TODO: color no vuelve a ponerse normal is esta  en rojo
           chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
           if (isRestrictedWebsiteActive && remainingSeconds <= 0) {
             createAlarm();

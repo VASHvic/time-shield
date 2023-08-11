@@ -11,6 +11,7 @@ module.exports = {
   },
   rules: {
     'no-console': 'off',
+    'max-classes-per-file': 'off',
     'no-use-before-define': ['error', {
       functions: false,
     }],
