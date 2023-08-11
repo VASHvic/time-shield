@@ -65,8 +65,9 @@ function runBackground() {
     // Initialize recursive ping
     ping();
 
-    function readTabName(t) {
-      // TODO: i have to read the restricted site array
+    function readTabName() {
+      // TODO: i have to read the restricted site array brecause removing
+      // elements doesnt work for the day
       if (readingTabName) return;
       readingTabName = true;
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -103,7 +104,7 @@ function runBackground() {
           text: `${`${Math.floor(remainingSeconds / 60)}m`}`,
         });
         console.log('remainingTimer 👀', remainingSeconds);
-        if (remainingSeconds < 100) {
+        if (remainingSeconds < (5 * 60)) {
           chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
           if (isRestrictedWebsiteActive && remainingSeconds <= 0) {
             createAlarm();
