@@ -1,14 +1,17 @@
 /* global chrome */
 
+const WorkerMessages = {
+  runBackGround: 'runBackground',
+  updateTimer: 'updateTimer',
+};
 class StorageService {
-  constructor(storage, defaultValues) {
+  constructor({ storage, defaultValues }) {
     this.defaultValues = defaultValues;
     this.localStorage = storage;
   }
 
-  async get() {
-    const values = await this.localStorage.get(this.defaultValues);
-    return values;
+  async get(storedList) {
+    return this.localStorage.get(storedList ?? this.defaultValues);
   }
 
   async set(values) {
@@ -17,13 +20,13 @@ class StorageService {
 }
 
 class Popup {
-  constructor() {
+  constructor({ storageService }) {
     this.limitedUrlInput = document.getElementById('limited-url-input');
     this.timeInput = document.getElementById('time-input');
-    this.listaUrls = document.getElementById('lista-urls');
+    this.urlList = document.getElementById('lista-urls');
     this.submitButton = document.getElementById('submit-button');
 
-    this.storageService = new StorageService(chrome.storage.local, ['restrictedSites', 'maxAllowedTime']);
+    this.storageService = storageService;
 
     this.popupProtectedSites = [];
     this.currentMaxAllowedTime = 0;
@@ -33,6 +36,9 @@ class Popup {
     console.log('Starting popup process...');
     await this.loadSettings();
     this.setupEventListeners();
+    if (this.popupProtectedSites.length > 0 && this.currentMaxAllowedTime) {
+      sendWorkerMessage(WorkerMessages.runBackGround);
+    }
   }
 
   async loadSettings() {
@@ -45,7 +51,6 @@ class Popup {
 
   setupEventListeners() {
     this.submitButton.addEventListener('click', async (e) => this.handleSubmit(e));
-    console.log('fin set up events');
   }
 
   displaySites() {
@@ -54,7 +59,7 @@ class Popup {
 
   addNewUrlListItem(name) {
     const websiteListItem = this.createListItem(name);
-    this.listaUrls.appendChild(websiteListItem);
+    this.urlList.appendChild(websiteListItem);
   }
 
   createListItem(name) {
@@ -80,16 +85,11 @@ class Popup {
     if (url) {
       this.addNewUrlListItem(url);
       this.popupProtectedSites.push(url);
-      this.updateStorage();
       this.limitedUrlInput.value = '';
     }
+    this.updateStorage();
     console.log('click pasa');
-    if (this.currentMaxAllowedTime !== this.timeInput.value) {
-      console.log('Max allowed time changed');
-      await this.storageService.set({ maxAllowedTime: minutesToSeconds(this.timeInput.value) });
-      sendWorkerMessage('updateTimer');
-    }
-    sendWorkerMessage('runBackground');
+    sendWorkerMessage(WorkerMessages.runBackGround);
   }
 
   getUrl() {
@@ -102,27 +102,27 @@ class Popup {
   }
 
   async updateStorage() {
-    const maxAllowedSeconds = parseInt(this.timeInput.value, 10) * 60;
+    const maxAllowedSeconds = minutesToSeconds(parseInt(this.timeInput.value, 10));
+    console.log('🤔', this.currentMaxAllowedTime !== maxAllowedSeconds);
 
     if (this.currentMaxAllowedTime !== maxAllowedSeconds) {
       console.log('Max allowed time changed');
-      this.storageService.set({ remainingTime: maxAllowedSeconds });
+      await this.storageService.set({ remainingTime: maxAllowedSeconds });
       this.currentMaxAllowedTime = maxAllowedSeconds;
-      sendWorkerMessage('updateTimer');
-    } else {
-      console.log('Max time stays the same');
+      sendWorkerMessage(WorkerMessages.updateTimer);
     }
 
     await this.storageService.set(
       { maxAllowedTime: maxAllowedSeconds, restrictedSites: this.popupProtectedSites },
     );
-    sendWorkerMessage('runBackground');
   }
 }
 
 function secondsToMinutes(seconds) {
+  if (typeof seconds !== 'number') return '';
   return String(seconds / 60);
 }
+
 function minutesToSeconds(minutes) {
   return minutes * 60;
 }
@@ -132,9 +132,10 @@ function sendWorkerMessage(msg) {
   chrome.runtime.sendMessage({ message: msg });
 }
 
-async function startPopupProcess() {
-  const popup = new Popup();
+async function main() {
+  const storageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
+  const popup = new Popup({ storageService });
   await popup.start();
 }
 
-startPopupProcess();
+main();

@@ -3,9 +3,14 @@ let isAppRunning = false;
 let readingTabName = false;
 let remainingSeconds;
 
+const WorkerMessages = {
+  runBackGround: 'runBackground',
+  updateTimer: 'updateTimer',
+};
+
 chrome.runtime.onMessage.addListener(
   (request) => {
-    if (request.message === 'runBackground') {
+    if (request.message === WorkerMessages.runBackGround) {
       console.log('Running background in background.js');
       if (isAppRunning === false) {
         runBackground();
@@ -15,7 +20,7 @@ chrome.runtime.onMessage.addListener(
     if (request.message === 'ping') {
       console.log('pong');
     }
-    if (request.message === 'updateTimer') {
+    if (request.message === WorkerMessages.updateTimer) {
       console.log('updating timer');
       chrome.storage.local.get('maxAllowedTime').then(({ maxAllowedTime }) => {
         remainingSeconds = parseInt(maxAllowedTime, 10);
@@ -52,8 +57,7 @@ function runBackground() {
       clearRequestedInterval(intervalId);
     });
     chrome.runtime.onMessage.addListener((msg) => {
-      console.log({ msg });
-      console.log('pong');
+      console.log('this executed the onMessage Listener', { msg });
     });
     chrome.alarms.onAlarm.addListener(() => {
       this.registration.showNotification('Time Shield Extension', {
@@ -62,7 +66,7 @@ function runBackground() {
       });
     });
 
-    // Initialize recursive ping
+    // Initialize recursive ping so the background doesnt go idle
     ping();
 
     function readTabName() {
