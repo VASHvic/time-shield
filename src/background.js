@@ -8,27 +8,18 @@ const WorkerMessages = {
   updateTimer: 'updateTimer',
 };
 
-chrome.runtime.onMessage.addListener(
-  (request) => {
-    if (request.message === WorkerMessages.runBackGround) {
-      console.log('Running background in background.js');
-      if (isAppRunning === false) {
-        runBackground();
-        isAppRunning = true;
-      }
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.message === WorkerMessages.runBackGround) {
+    console.log('Running background in background.js');
+    if (!isAppRunning) {
+      runBackground();
+      isAppRunning = true;
     }
-    if (request.message === 'ping') {
-      console.log('pong');
-    }
-    if (request.message === WorkerMessages.updateTimer) {
-      console.log('updating timer');
-      chrome.storage.local.get('maxAllowedTime').then(({ maxAllowedTime }) => {
-        remainingSeconds = parseInt(maxAllowedTime, 10);
-        console.log(`remainingSeconds desde el listener ${remainingSeconds}`);
-      });
-    }
-  },
-);
+  } else if (request.message === WorkerMessages.updateTimer) {
+    console.log('Updating timer');
+    updateTimerFromStorage();
+  }
+});
 
 function runBackground() {
   chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(({
@@ -66,9 +57,6 @@ function runBackground() {
       });
     });
 
-    // Initialize recursive ping so the background doesnt go idle
-    ping();
-
     function readTabName() {
       // TODO: i have to read the restricted site array brecause removing
       // elements doesnt work for the day
@@ -81,7 +69,7 @@ function runBackground() {
             console.log('The website is restricted');
             chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
             isRestrictedWebsiteActive = true;
-            createInterval();
+            checkCurrentBrowserInfoInterval();
           }
         } else {
           isRestrictedWebsiteActive = false;
@@ -100,7 +88,7 @@ function runBackground() {
       readingTabName = false;
     }
 
-    function createInterval() {
+    function checkCurrentBrowserInfoInterval() {
       if (intervalId) return;
       intervalId = setInterval(() => {
         if (isRestrictedWebsiteActive) remainingSeconds -= 10;
@@ -124,27 +112,21 @@ function runBackground() {
     }
 
     function calculateRemainingTimer(remaining, max, savedDay, currentDay) {
-      let remainingTimer;
-      if (typeof remaining === 'string') parseInt(remaining, 10);
-      if (typeof remaining === 'number') {
-        if (max < remaining) {
-          remainingTimer = max;
-        } else {
-          remainingTimer = remaining;
-        }
-      } else {
-        remainingTimer = 9999;
-      }
-
       if (savedDay !== currentDay) {
-        remainingTimer = max ?? 9999;
+        return max ?? 9999;
       }
 
-      return remainingTimer;
+      return typeof remaining === 'number' ? Math.min(remaining, max) : 9999;
     }
   });
 }
 
+function updateTimerFromStorage() {
+  chrome.storage.local.get('maxAllowedTime', ({ maxAllowedTime }) => {
+    remainingSeconds = parseInt(maxAllowedTime, 10);
+    console.log(`Remaining seconds from the listener: ${remainingSeconds}`);
+  });
+}
 function createAlarm() {
   chrome.alarms.create({
     when: new Date().getMilliseconds(),
@@ -155,12 +137,8 @@ function printStorage() {
   chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(console.log);
 }
 
-function ping() {
-  setTimeout(() => {
-    chrome.runtime.sendMessage('ping', () => {
-      console.log('ping');
-      printStorage();
-    });
-    ping();
-  }, 10000);
-}
+(function ping() {
+  console.log('ping');
+  printStorage();
+  setTimeout(ping, 10000);
+}());
