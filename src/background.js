@@ -14,11 +14,11 @@ chrome.runtime.onMessage.addListener((request) => {
 });
 
 function runBackground() {
-  chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(({
-    maxAllowedTime, restrictedSites, remainingTime, today,
+  chrome.storage.local.get(['maxAllowedTime', 'today', 'remainingTime']).then(({
+    maxAllowedTime, remainingTime, today,
   }) => {
     console.log('All variables in background\n', {
-      maxAllowedTime, restrictedSites, remainingTime, today,
+      maxAllowedTime, remainingTime, today,
     });
 
     const dayToday = new Date().getDay();
@@ -58,30 +58,32 @@ function runBackground() {
       // elements doesnt work for the day
       if (readingTabName) return;
       readingTabName = true;
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        console.log(tabs[0]?.url);
-        if (restrictedSites.some((w) => tabs[0]?.url.includes(w))) {
-          if (!intervalId) {
-            console.log('The website is restricted');
-            chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
-            isRestrictedWebsiteActive = true;
-            checkCurrentBrowserInfoInterval();
-          }
-        } else {
-          isRestrictedWebsiteActive = false;
-          chrome.storage.local.set({
-            remainingTime: remainingSeconds,
-            today: dayToday,
+      chrome.storage.local.get(['restrictedSites']).then(({ restrictedSites }) => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          console.log(tabs[0]?.url);
+          if (restrictedSites.some((w) => tabs[0]?.url.includes(w))) {
+            if (!intervalId) {
+              console.log('The website is restricted');
+              chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
+              isRestrictedWebsiteActive = true;
+              checkCurrentBrowserInfoInterval();
+            }
+          } else {
+            isRestrictedWebsiteActive = false;
+            chrome.storage.local.set({
+              remainingTime: remainingSeconds,
+              today: dayToday,
 
-          });
-          console.log(`The website is not restricted, canceling the interval${intervalId}`);
-          chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
-          if (intervalId) {
-            clearRequestedInterval(intervalId);
+            });
+            console.log(`The website is not restricted, canceling the interval${intervalId}`);
+            chrome.storage.local.get(['remainingTime', 'today']).then(console.log);
+            if (intervalId) {
+              clearRequestedInterval(intervalId);
+            }
           }
-        }
+        });
+        readingTabName = false;
       });
-      readingTabName = false;
     }
 
     function checkCurrentBrowserInfoInterval() {
