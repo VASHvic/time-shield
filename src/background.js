@@ -1,21 +1,13 @@
 /* global chrome */
-let isAppRunning = false;
 let readingTabName = false;
 let remainingSeconds;
 
 const WorkerMessages = {
-  runBackGround: 'runBackground',
   updateTimer: 'updateTimer',
 };
 
 chrome.runtime.onMessage.addListener((request) => {
-  if (request.message === WorkerMessages.runBackGround) {
-    console.log('Running background in background.js');
-    if (!isAppRunning) {
-      runBackground();
-      isAppRunning = true;
-    }
-  } else if (request.message === WorkerMessages.updateTimer) {
+  if (request.message === WorkerMessages.updateTimer) {
     console.log('Updating timer');
     updateTimerFromStorage();
   }
@@ -47,13 +39,17 @@ function runBackground() {
       });
       clearRequestedInterval(intervalId);
     });
+
     chrome.runtime.onMessage.addListener((msg) => {
       console.log('this executed the onMessage Listener', { msg });
     });
+
     chrome.alarms.onAlarm.addListener(() => {
-      this.registration.showNotification('Time Shield Extension', {
-        body: 'Time to close that tab',
-        icon: 'shield.png',
+      chrome.notifications.create('notification-id', {
+        type: 'basic',
+        title: 'Time Shield Extension',
+        message: 'Time to close that tab',
+        iconUrl: 'shield.png',
       });
     });
 
@@ -136,6 +132,9 @@ function printStorage() {
   console.log('STORAGE: ');
   chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(console.log);
 }
+(function start() {
+  runBackground();
+}());
 
 (function ping() {
   console.log('ping');

@@ -1,7 +1,7 @@
 # Bugs
 # TODOWorkerMessages
 - Usar chrome cli para generar una extension con webpack y poder usar import export? https://github.com/dutiyesh/chrome-extension-cli#readme
-- Probar si se podía con vite?
+- Probar si se podía con vite? https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite
 
 ## worker
 - The restricted sites dont change because the listener reads from the saved instead of storage

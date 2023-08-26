@@ -1,7 +1,6 @@
 /* global chrome */
 
 const WorkerMessages = {
-  runBackGround: 'runBackground',
   updateTimer: 'updateTimer',
 };
 class StorageService {
@@ -27,7 +26,6 @@ class Popup {
     this.submitButton = document.getElementById('submit-button');
 
     this.storageService = storageService;
-
     this.popupProtectedSites = [];
     this.currentMaxAllowedTime = 0;
   }
@@ -36,9 +34,6 @@ class Popup {
     console.log('Starting popup process...');
     await this.loadSettings();
     this.setupEventListeners();
-    if (this.popupProtectedSites.length > 0 && this.currentMaxAllowedTime) {
-      sendWorkerMessage(WorkerMessages.runBackGround);
-    }
   }
 
   async loadSettings() {
@@ -88,8 +83,6 @@ class Popup {
       this.limitedUrlInput.value = '';
     }
     this.updateStorage();
-    console.log('click pasa');
-    sendWorkerMessage(WorkerMessages.runBackGround);
   }
 
   getUrl() {
