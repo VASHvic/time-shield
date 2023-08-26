@@ -8,6 +8,7 @@
     "48": "shield.png",
     "128": "shield.png"
   },
+  
   "action":{
     "default_title": "Time Protector Action Title",
     "default_popup": "./popup/popup.html",
@@ -20,5 +21,7 @@
   "options_page": "./options/options.html",
   "permissions": ["storage","tabs","alarms","notifications","windows"],
   "background": {
-    "service_worker": "background.js"  }
+    "service_worker": "background.js",
+    "type": "module"
+  }
 }

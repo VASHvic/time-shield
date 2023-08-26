@@ -1,101 +1,123 @@
 /* global chrome */
 
-// DOM Elements
-const limitedUrlInput = document.getElementById('limited-url-input');
-const timeInput = document.getElementById('time-input');
-const listaUrls = document.getElementById('lista-urls');
-const submitButton = document.getElementById('submit-button');
+const WorkerMessages = {
+  updateTimer: 'updateTimer',
+};
+class StorageService {
+  constructor({ storage, defaultValues }) {
+    this.defaultValues = defaultValues;
+    this.localStorage = storage;
+  }
 
-// Variables
-let protectedSites = [];
-const currentMaxAllowedTime = timeInput.value;
-// DEBUG
-// chrome.storage.local.clear();
+  async get(storedList) {
+    return this.localStorage.get(storedList ?? this.defaultValues);
+  }
 
-// Get stored data and setup
-main();
+  async set(values) {
+    await this.localStorage.set(values);
+  }
+}
 
-// Event Listeners
-submitButton.addEventListener('click', handleSubmit);
+class Popup {
+  constructor({ storageService }) {
+    this.limitedUrlInput = document.getElementById('limited-url-input');
+    this.timeInput = document.getElementById('time-input');
+    this.urlList = document.getElementById('lista-urls');
+    this.submitButton = document.getElementById('submit-button');
 
-function main() {
-  console.log('pop up main function running');
-  chrome.storage.local.get(['restrictedSites', 'maxAllowedTime'])
-    .then(({ maxAllowedTime, restrictedSites }) => {
-      protectedSites = restrictedSites ?? [];
-      timeInput.value = secondsToMinutes(maxAllowedTime ?? 1800);
-      if (protectedSites.length > 0) {
-        displaySites();
-        sendWorkerMessage('runBackground');
-      }
+    this.storageService = storageService;
+    this.popupProtectedSites = [];
+    this.currentMaxAllowedTime = 0;
+  }
+
+  async start() {
+    console.log('Starting popup process...');
+    await this.loadSettings();
+    this.setupEventListeners();
+  }
+
+  async loadSettings() {
+    const { restrictedSites, maxAllowedTime } = await this.storageService.get();
+    this.popupProtectedSites = restrictedSites;
+    this.currentMaxAllowedTime = maxAllowedTime;
+    this.timeInput.value = secondsToMinutes(maxAllowedTime);
+    this.displaySites();
+  }
+
+  setupEventListeners() {
+    this.submitButton.addEventListener('click', async (e) => this.handleSubmit(e));
+  }
+
+  displaySites() {
+    this.popupProtectedSites.forEach((site) => this.addNewUrlListItem(site));
+  }
+
+  addNewUrlListItem(name) {
+    const websiteListItem = this.createListItem(name);
+    this.urlList.appendChild(websiteListItem);
+  }
+
+  createListItem(name) {
+    const websiteListItem = document.createElement('li');
+    websiteListItem.textContent = name;
+
+    websiteListItem.addEventListener('click', () => {
+      this.removeListItem(websiteListItem, name);
     });
-}
 
-function displaySites() {
-  if (protectedSites.length > 0) {
-    protectedSites.forEach((s) => addNewUrlListItem(s));
+    return websiteListItem;
+  }
+
+  removeListItem(item, name) {
+    item.remove();
+    this.popupProtectedSites = this.popupProtectedSites.filter((site) => site !== name);
+    this.updateStorage();
+  }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+    const url = this.getUrl();
+    if (url) {
+      this.addNewUrlListItem(url);
+      this.popupProtectedSites.push(url);
+      this.limitedUrlInput.value = '';
+    }
+    this.updateStorage();
+  }
+
+  getUrl() {
+    let url = this.limitedUrlInput.value;
+    if (url.includes('.')) {
+      const splitUrl = url.split('.');
+      url = splitUrl.length <= 2 ? splitUrl[0] : splitUrl[1];
+    }
+    return url;
+  }
+
+  async updateStorage() {
+    const maxAllowedSeconds = minutesToSeconds(parseInt(this.timeInput.value, 10));
+    console.log('🤔', this.currentMaxAllowedTime !== maxAllowedSeconds);
+
+    if (this.currentMaxAllowedTime !== maxAllowedSeconds) {
+      console.log('Max allowed time changed');
+      await this.storageService.set({ remainingTime: maxAllowedSeconds });
+      this.currentMaxAllowedTime = maxAllowedSeconds;
+      sendWorkerMessage(WorkerMessages.updateTimer);
+    }
+
+    await this.storageService.set(
+      { maxAllowedTime: maxAllowedSeconds, restrictedSites: this.popupProtectedSites },
+    );
   }
 }
 
-function addNewUrlListItem(name) {
-  const websiteListItem = createListItem(name);
-  listaUrls.appendChild(websiteListItem);
+function secondsToMinutes(seconds) {
+  if (typeof seconds !== 'number') return '';
+  return String(seconds / 60);
 }
 
-function createListItem(name) {
-  const websiteListItem = document.createElement('li');
-  websiteListItem.textContent = name;
-
-  websiteListItem.addEventListener('click', () => {
-    removeListItem(websiteListItem, name);
-  });
-
-  return websiteListItem;
-}
-
-function removeListItem(item, name) {
-  item.remove();
-  protectedSites = protectedSites.filter((site) => site !== name);
-  updateStorage();
-}
-
-function handleSubmit(e) {
-  console.log('pasa per update storage');
-  e.preventDefault();
-  if (limitedUrlInput.value) {
-    const url = getUrl();
-    addNewUrlListItem(url);
-    protectedSites.push(url);
-  }
-  updateStorage();
-  limitedUrlInput.value = '';
-  sendWorkerMessage('runBackground');
-}
-
-function getUrl() {
-  let url = limitedUrlInput.value;
-  if (url.includes('.')) {
-    const splitUrl = url.split('.');
-    url = splitUrl.length <= 2 ? splitUrl[0] : splitUrl[1];
-  }
-  return url;
-}
-
-function updateStorage() {
-  const maxAllowedSeconds = String(parseInt(timeInput.value, 10) * 60);
-  chrome.storage.local.set({
-    restrictedSites: protectedSites,
-    maxAllowedTime: maxAllowedSeconds,
-  });
-  if (isMaxAllowedTimeChange()) {
-    console.log('Max allowed time changed');
-    chrome.storage.local.set({
-      remainingTime: maxAllowedSeconds,
-    });
-    sendWorkerMessage('updateTimer');
-  } else {
-    console.log('Max time stays the same');
-  }
+function minutesToSeconds(minutes) {
+  return minutes * 60;
 }
 
 function sendWorkerMessage(msg) {
@@ -103,9 +125,10 @@ function sendWorkerMessage(msg) {
   chrome.runtime.sendMessage({ message: msg });
 }
 
-function isMaxAllowedTimeChange() {
-  return currentMaxAllowedTime !== timeInput.value;
+async function main() {
+  const storageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
+  const popup = new Popup({ storageService });
+  await popup.start();
 }
-function secondsToMinutes(seconds) {
-  return String(parseInt(seconds, 10) / 60);
-}
+
+main();
