@@ -4,10 +4,11 @@
 - Probar si se podía con vite? https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite
 
 ## worker
-- The restricted sites dont change because the listener reads from the saved instead of storage
 - Convert all file to async await?
-- Hacer que el color vuelva desde rojo ( un buen lugar es en el updateTimer message)
-- Separar en archivos cone exports
+- Separar en archivos cone exports ( usar vite?)
 
 ## popup
 - Páginas prohibidas en chips rojos?
+
+## todo
+probar a comencar la aplicació en el storage buit

@@ -2,6 +2,7 @@
 
 const WorkerMessages = {
   updateTimer: 'updateTimer',
+  start: 'start',
 };
 class StorageService {
   constructor({ storage, defaultValues }) {
@@ -82,7 +83,8 @@ class Popup {
       this.popupProtectedSites.push(url);
       this.limitedUrlInput.value = '';
     }
-    this.updateStorage();
+    await this.updateStorage();
+    sendWorkerMessage(WorkerMessages.start);
   }
 
   getUrl() {
@@ -103,6 +105,7 @@ class Popup {
       await this.storageService.set({ remainingTime: maxAllowedSeconds });
       this.currentMaxAllowedTime = maxAllowedSeconds;
       sendWorkerMessage(WorkerMessages.updateTimer);
+      changeBadgeContent(maxAllowedSeconds);
     }
 
     await this.storageService.set(
@@ -123,6 +126,21 @@ function minutesToSeconds(minutes) {
 function sendWorkerMessage(msg) {
   console.log('sending worker message');
   chrome.runtime.sendMessage({ message: msg });
+}
+
+function changeBadgeContent(currentSeconds) {
+  chrome.action.setBadgeText({
+    text: `${`${Math.floor(currentSeconds / 60)}m`}`,
+  });
+  if (currentSeconds < (5 * 60)) {
+    changeBadgeColor('#FF0000');
+  } else {
+    changeBadgeColor('#0000FF');
+  }
+}
+
+function changeBadgeColor(color) {
+  chrome.action.setBadgeBackgroundColor({ color });
 }
 
 async function main() {
