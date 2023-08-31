@@ -52,7 +52,7 @@ async function runBackground() {
           }
         } else {
           isRestrictedWebsiteActive = false;
-          saveCurrentDataToStorage(); // TODO: crec que no sería necesaria esta cridada
+          // saveCurrentDataToStorage(); // TODO: crec que no sería necesaria esta cridada
           console.log(`The website is not restricted, canceling the interval${currentIntervalId}`);
           printStorage();
           clearRequestedInterval(currentIntervalId);
