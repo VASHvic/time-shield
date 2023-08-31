@@ -12,3 +12,4 @@
 
 ## todo
 probar a comencar la aplicació en el storage buit
+agrupar funciones de background en un objeto chrome?
