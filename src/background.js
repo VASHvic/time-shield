@@ -25,16 +25,17 @@ async function runBackground() {
   const {
     maxAllowedTime, remainingTime, today,
   } = await chrome.storage.local.get(['maxAllowedTime', 'today', 'remainingTime']);
+  chrome.storage.local.set({ today: new Date().getDay() });
+  console.log('INITIAL DATA LOADED');
   if (!maxAllowedTime) return;
-
+  console.log('FIRST FUNCTION CALL');
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, today);
-
   chrome.windows.onFocusChanged.addListener(readTabName);
   chrome.tabs.onActivated.addListener(readTabName);
   chrome.tabs.onCreated.addListener(readTabName);
   chrome.tabs.onUpdated.addListener(readTabName);
   chrome.runtime.onSuspend.addListener(() => {
-    saveCurrentDataToStorage();
+    saveRemainingMinutes();
     clearRequestedInterval(globals.currentIntervalId);
   });
 
@@ -54,7 +55,7 @@ async function runBackground() {
         }
       } else {
         globals.isRestrictedWebsiteActive = false;
-        // saveCurrentDataToStorage(); // TODO: crec que no sería necesaria esta cridada
+        saveRemainingMinutes();
         console.log(`The website is not restricted, canceling the interval${globals.currentIntervalId}`);
         printStorage();
         clearRequestedInterval(globals.currentIntervalId);
@@ -67,9 +68,9 @@ async function runBackground() {
     }, 100);
   }
   /**
- * Check each 10 seconds if the global isRestrictedWebsite
- * is active and substract seconds from global count
- */
+   * Check each 10 seconds if the global isRestrictedWebsite
+   * is active and substract seconds from global count
+  */
   function checkCurrentBrowserInfoInterval() {
     if (globals.currentIntervalId) return;
     globals.currentIntervalId = setInterval(() => {
@@ -123,10 +124,9 @@ function clearRequestedInterval(intervalIdToDelete) {
   }
 }
 
-function saveCurrentDataToStorage() {
+async function saveRemainingMinutes() {
   chrome.storage.local.set({
     remainingTime: globals.remainingSeconds,
-    today: new Date().getDay(),
   });
 }
 function getRemainingTimer(remaining, max, savedDay) {
