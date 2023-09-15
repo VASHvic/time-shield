@@ -25,11 +25,12 @@ async function runBackground() {
   const {
     maxAllowedTime, remainingTime, today,
   } = await chrome.storage.local.get(['maxAllowedTime', 'today', 'remainingTime']);
-  chrome.storage.local.set({ today: new Date().getDay() });
   console.log('INITIAL DATA LOADED');
   if (!maxAllowedTime) return;
+  chrome.storage.local.set({ today: new Date().getDay() });
   console.log('FIRST FUNCTION CALL');
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, today);
+  changeBadgeContent(globals.remainingSeconds);
   chrome.windows.onFocusChanged.addListener(readTabName);
   chrome.tabs.onActivated.addListener(readTabName);
   chrome.tabs.onCreated.addListener(readTabName);
@@ -38,6 +39,7 @@ async function runBackground() {
     saveRemainingMinutes();
     clearRequestedInterval(globals.currentIntervalId);
   });
+  // TODO: listener para cuando está en segundo plano?
 
   async function readTabName() {
     console.log('Reading tab name');
@@ -86,8 +88,10 @@ async function runBackground() {
 
 function updateCurrentTimer() {
   chrome.storage.local.get('maxAllowedTime', ({ maxAllowedTime }) => {
-    globals.remainingSeconds = parseInt(maxAllowedTime, 10);
-    console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
+    if (maxAllowedTime) {
+      globals.remainingSeconds = parseInt(maxAllowedTime, 10);
+      console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
+    }
   });
 }
 

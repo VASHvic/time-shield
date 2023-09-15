@@ -39,7 +39,7 @@ class Popup {
 
   async loadSettings() {
     const { restrictedSites, maxAllowedTime } = await this.storageService.get();
-    this.popupProtectedSites = restrictedSites;
+    this.popupProtectedSites = restrictedSites ?? [];
     this.currentMaxAllowedTime = maxAllowedTime;
     this.timeInput.value = secondsToMinutes(maxAllowedTime);
     this.displaySites();
@@ -50,7 +50,7 @@ class Popup {
   }
 
   displaySites() {
-    this.popupProtectedSites.forEach((site) => this.addNewUrlListItem(site));
+    this.popupProtectedSites?.forEach((site) => this.addNewUrlListItem(site));
   }
 
   addNewUrlListItem(name) {
@@ -71,7 +71,7 @@ class Popup {
 
   removeListItem(item, name) {
     item.remove();
-    this.popupProtectedSites = this.popupProtectedSites.filter((site) => site !== name);
+    this.popupProtectedSites = this.popupProtectedSites?.filter((site) => site !== name);
     this.updateStorage();
   }
 
@@ -105,7 +105,9 @@ class Popup {
       await this.storageService.set({ remainingTime: maxAllowedSeconds });
       this.currentMaxAllowedTime = maxAllowedSeconds;
       sendWorkerMessage(WorkerMessages.updateTimer);
-      changeBadgeContent(maxAllowedSeconds);
+      if (maxAllowedSeconds) {
+        changeBadgeContent(maxAllowedSeconds);
+      }
     }
 
     await this.storageService.set(
@@ -144,6 +146,7 @@ function changeBadgeColor(color) {
 }
 
 async function main() {
+  // await chrome.storage.local.clear();
   const storageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
   const popup = new Popup({ storageService });
   await popup.start();
