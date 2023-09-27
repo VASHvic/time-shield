@@ -11,5 +11,8 @@
 - Páginas prohibidas en chips rojos?
 
 ## todo
-probar a comencar la aplicació en el storage buit
 agrupar funciones de background en un objeto chrome?
+
+
+- guardar temps diari, semanal, mensual dedicat a cada página?
+- funcionalitat lock per a no poder cambiar els minuts el mateix dia

@@ -5,12 +5,34 @@ const globals = {
   isRestrictedWebsiteActive: false,
   remainingSeconds: undefined,
   currentIntervalId: undefined,
+  currentRestrictedWebsite: undefined,
 };
 
 const WorkerMessages = {
   updateTimer: 'updateTimer',
   start: 'start',
 };
+class StorageService {
+  constructor({ storage, defaultValues }) {
+    this.defaultValues = defaultValues;
+    this.localStorage = storage;
+  }
+
+  async get(storedList) {
+    return this.localStorage.get(storedList ?? this.defaultValues);
+  }
+
+  async set(values) {
+    await this.localStorage.set(values);
+  }
+
+  async printStorage() {
+    const { restrictedSites } = await this.localStorage.get(['restrictedSites']);
+    console.log('PRINTING STORAGE');
+    this.localStorage.get(['maxAllowedTime', 'today', 'remainingTime', ...restrictedSites]).then(console.log);
+  }
+}
+const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.message === WorkerMessages.updateTimer) {
@@ -24,10 +46,10 @@ chrome.runtime.onMessage.addListener((request) => {
 async function runBackground() {
   const {
     maxAllowedTime, remainingTime, today,
-  } = await chrome.storage.local.get(['maxAllowedTime', 'today', 'remainingTime']);
+  } = await chromeStorageService.get(['maxAllowedTime', 'today', 'remainingTime']);
   console.log('INITIAL DATA LOADED');
   if (!maxAllowedTime) return;
-  chrome.storage.local.set({ today: new Date().getDay() });
+  chromeStorageService.set({ today: new Date().getDay() });
   console.log('FIRST FUNCTION CALL');
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, today);
   changeBadgeContent(globals.remainingSeconds);
@@ -45,21 +67,24 @@ async function runBackground() {
     console.log('Reading tab name');
     if (globals.readingTabName) return;
     globals.readingTabName = true;
-    const { restrictedSites } = await chrome.storage.local.get(['restrictedSites']);
+    const { restrictedSites } = await chromeStorageService.get(['restrictedSites']);
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       console.log(tabs[0]?.url);
-      if (restrictedSites?.some((w) => tabs[0]?.url.includes(w))) {
+      const restrictedWebsite = restrictedSites.find((w) => tabs[0]?.url.includes(w));
+      globals.currentRestrictedWebsite = restrictedWebsite;
+      if (restrictedWebsite) {
+        console.log('current restricted website: ', restrictedWebsite);
         if (!globals.currentIntervalId) {
           console.log('The website is restricted');
-          printStorage();
+          chromeStorageService.printStorage();
           globals.isRestrictedWebsiteActive = true;
           checkCurrentBrowserInfoInterval();
         }
       } else {
         globals.isRestrictedWebsiteActive = false;
         saveRemainingMinutes();
-        console.log(`The website is not restricted, canceling the interval${globals.currentIntervalId}`);
-        printStorage();
+        console.log(`The website is not restricted, canceling the interval ${globals.currentIntervalId}`);
+        chromeStorageService.printStorage();
         clearRequestedInterval(globals.currentIntervalId);
         globals.currentIntervalId = undefined;
       }
@@ -75,8 +100,17 @@ async function runBackground() {
   */
   function checkCurrentBrowserInfoInterval() {
     if (globals.currentIntervalId) return;
-    globals.currentIntervalId = setInterval(() => {
-      if (globals.isRestrictedWebsiteActive) globals.remainingSeconds -= 10;
+    globals.currentIntervalId = setInterval(async () => {
+      if (globals.isRestrictedWebsiteActive) {
+        const restrictedSite = globals.currentRestrictedWebsite;
+        const currentSeconds = await chromeStorageService.get(restrictedSite);
+        currentSeconds[`${restrictedSite}`] = parseInt(currentSeconds[`${restrictedSite}`], 10) || 0;
+        console.log('🌞', currentSeconds);
+        chromeStorageService.set(
+          { [restrictedSite]: currentSeconds[restrictedSite] += 10 },
+        );
+        globals.remainingSeconds -= 10;
+      }
       console.log('remainingTimer 👀', globals.remainingSeconds);
       changeBadgeContent(globals.remainingSeconds);
       if (globals.isRestrictedWebsiteActive && globals.remainingSeconds <= 0) {
@@ -87,7 +121,7 @@ async function runBackground() {
 }
 
 function updateCurrentTimer() {
-  chrome.storage.local.get('maxAllowedTime', ({ maxAllowedTime }) => {
+  chromeStorageService.get('maxAllowedTime', ({ maxAllowedTime }) => {
     if (maxAllowedTime) {
       globals.remainingSeconds = parseInt(maxAllowedTime, 10);
       console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
@@ -102,10 +136,6 @@ function showNotification() {
     message: 'Time to close that tab',
     iconUrl: 'shield.png',
   });
-}
-function printStorage() {
-  console.log('STORAGE: ');
-  chrome.storage.local.get(['restrictedSites', 'maxAllowedTime', 'today', 'remainingTime']).then(console.log);
 }
 
 function changeBadgeContent(currentSeconds) {
@@ -129,7 +159,7 @@ function clearRequestedInterval(intervalIdToDelete) {
 }
 
 async function saveRemainingMinutes() {
-  chrome.storage.local.set({
+  chromeStorageService.set({
     remainingTime: globals.remainingSeconds,
   });
 }
@@ -155,7 +185,7 @@ function start() {
  */
 (function ping() {
   console.log('ping');
-  printStorage();
+  chromeStorageService.printStorage();
   setTimeout(ping, 10000);
 }());
 

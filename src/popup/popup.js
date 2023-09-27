@@ -147,8 +147,8 @@ function changeBadgeColor(color) {
 
 async function main() {
   // await chrome.storage.local.clear();
-  const storageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
-  const popup = new Popup({ storageService });
+  const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
+  const popup = new Popup({ storageService: chromeStorageService });
   await popup.start();
 }
 
