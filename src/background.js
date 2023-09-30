@@ -36,6 +36,7 @@ const chromeStorageService = new StorageService({ storage: chrome.storage.local,
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.message === WorkerMessages.updateTimer) {
+    console.log('⌚');
     updateCurrentTimer();
   }
   if (request.message === WorkerMessages.start) {
@@ -53,6 +54,7 @@ async function runBackground() {
   console.log('FIRST FUNCTION CALL');
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, today);
   changeBadgeContent(globals.remainingSeconds);
+  // TODO: probar un altra funció en lloc de redtabname en focuschanged a vore si funciona y posarli un log diferent o algo
   chrome.windows.onFocusChanged.addListener(readTabName);
   chrome.tabs.onActivated.addListener(readTabName);
   chrome.tabs.onCreated.addListener(readTabName);
@@ -120,13 +122,13 @@ async function runBackground() {
   }
 }
 
-function updateCurrentTimer() {
-  chromeStorageService.get('maxAllowedTime', ({ maxAllowedTime }) => {
-    if (maxAllowedTime) {
-      globals.remainingSeconds = parseInt(maxAllowedTime, 10);
-      console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
-    }
-  });
+async function updateCurrentTimer() {
+  const { maxAllowedTime } = await chromeStorageService.get('maxAllowedTime');
+  console.log(`log maxAllowedTime en storage ${maxAllowedTime}`);
+  if (maxAllowedTime) {
+    globals.remainingSeconds = parseInt(maxAllowedTime, 10);
+    console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
+  }
 }
 
 function showNotification() {
@@ -158,7 +160,11 @@ function clearRequestedInterval(intervalIdToDelete) {
   }
 }
 
-async function saveRemainingMinutes() {
+async function saveRemainingMinutes() { // TODO no son seconds?
+  console.log('Lo que guarde en storage');
+  console.log({
+    remainingTime: globals.remainingSeconds,
+  });
   chromeStorageService.set({
     remainingTime: globals.remainingSeconds,
   });
