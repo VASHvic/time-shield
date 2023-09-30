@@ -4,6 +4,7 @@ const WorkerMessages = {
   updateTimer: 'updateTimer',
   start: 'start',
 };
+
 class StorageService {
   constructor({ storage, defaultValues }) {
     this.defaultValues = defaultValues;
@@ -27,7 +28,7 @@ class Popup {
     this.submitButton = document.getElementById('submit-button');
 
     this.storageService = storageService;
-    this.popupProtectedSites = [];
+    this.protectedSites = [];
     this.currentMaxAllowedTime = 0;
   }
 
@@ -39,7 +40,8 @@ class Popup {
 
   async loadSettings() {
     const { restrictedSites, maxAllowedTime } = await this.storageService.get();
-    this.popupProtectedSites = restrictedSites ?? [];
+    this.protectedSites = restrictedSites ?? [];
+    this.restrictedSitesInfo = await this.storageService.get(this.protectedSites);
     this.currentMaxAllowedTime = maxAllowedTime;
     this.timeInput.value = secondsToMinutes(maxAllowedTime);
     this.displaySites();
@@ -50,28 +52,45 @@ class Popup {
   }
 
   displaySites() {
-    this.popupProtectedSites?.forEach((site) => this.addNewUrlListItem(site));
+    this.protectedSites?.forEach((site) => this.addUrlListItem(site));
   }
 
-  addNewUrlListItem(name) {
+  addUrlListItem(name) {
     const websiteListItem = this.createListItem(name);
+    if (this.restrictedSitesInfo[name]) {
+      this.addAditionalInfo(websiteListItem, name);
+    }
     this.urlList.appendChild(websiteListItem);
   }
 
   createListItem(name) {
     const websiteListItem = document.createElement('li');
     websiteListItem.textContent = name;
-
     websiteListItem.addEventListener('click', () => {
       this.removeListItem(websiteListItem, name);
     });
-
     return websiteListItem;
+  }
+
+  addAditionalInfo(element, name) {
+    const infoIcon = document.createElement('span');
+    infoIcon.textContent = ' 💡';
+    infoIcon.setAttribute('title', this.displayRestrictedSiteInfo(name));
+    element.appendChild(infoIcon);
+  }
+
+  displayRestrictedSiteInfo(name) {
+    const info = this.restrictedSitesInfo[name];
+    const minutes = secondsToMinutes(info);
+    if (minutes < 60) {
+      return `${Math.floor(minutes)} minutes wasted in ${name}`;
+    }
+    return `${minutes / 60} hours wasted in ${name}`;
   }
 
   removeListItem(item, name) {
     item.remove();
-    this.popupProtectedSites = this.popupProtectedSites?.filter((site) => site !== name);
+    this.protectedSites = this.protectedSites?.filter((site) => site !== name);
     this.updateStorage();
   }
 
@@ -79,8 +98,8 @@ class Popup {
     e.preventDefault();
     const url = this.getUrl();
     if (url) {
-      this.addNewUrlListItem(url);
-      this.popupProtectedSites.push(url);
+      this.addUrlListItem(url);
+      this.protectedSites.push(url);
       this.limitedUrlInput.value = '';
     }
     await this.updateStorage();
@@ -99,8 +118,8 @@ class Popup {
   async updateStorage() {
     const maxAllowedSeconds = minutesToSeconds(parseInt(this.timeInput.value, 10));
     console.log('🤔', this.currentMaxAllowedTime !== maxAllowedSeconds);
-
-    if (this.currentMaxAllowedTime !== maxAllowedSeconds) {
+    const didTimeChange = this.currentMaxAllowedTime !== maxAllowedSeconds;
+    if (didTimeChange) {
       console.log('Max allowed time changed');
       await this.storageService.set({ remainingTime: maxAllowedSeconds });
       this.currentMaxAllowedTime = maxAllowedSeconds;
@@ -111,7 +130,7 @@ class Popup {
     }
 
     await this.storageService.set(
-      { maxAllowedTime: maxAllowedSeconds, restrictedSites: this.popupProtectedSites },
+      { maxAllowedTime: maxAllowedSeconds, restrictedSites: this.protectedSites },
     );
   }
 }
@@ -126,7 +145,7 @@ function minutesToSeconds(minutes) {
 }
 
 function sendWorkerMessage(msg) {
-  console.log('sending worker message');
+  console.log(`sending ${msg} worker message`);
   chrome.runtime.sendMessage({ message: msg });
 }
 
