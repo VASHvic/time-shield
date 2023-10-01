@@ -12,6 +12,10 @@ const WorkerMessages = {
   updateTimer: 'updateTimer',
   start: 'start',
 };
+const Colors = {
+  blue: '#0000FF',
+  red: '#FF0000',
+};
 class StorageService {
   constructor({ storage, defaultValues }) {
     this.defaultValues = defaultValues;
@@ -30,6 +34,7 @@ class StorageService {
     const { restrictedSites } = await this.localStorage.get(['restrictedSites']);
     console.log('PRINTING STORAGE');
     this.localStorage.get(['maxAllowedTime', 'today', 'remainingTime', ...restrictedSites]).then(console.log);
+    this.localStorage.get(['meneame_0', 'twitter_0']).then(console.log);
   }
 }
 const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
@@ -46,13 +51,18 @@ chrome.runtime.onMessage.addListener((request) => {
 
 async function runBackground() {
   const {
-    maxAllowedTime, remainingTime, today,
-  } = await chromeStorageService.get(['maxAllowedTime', 'today', 'remainingTime']);
+    maxAllowedTime, remainingTime, today, restrictedSites,
+  } = await chromeStorageService.get(['maxAllowedTime', 'today', 'remainingTime', 'restrictedSites']);
   console.log('INITIAL DATA LOADED');
   if (!maxAllowedTime) return;
-  chromeStorageService.set({ today: new Date().getDay() });
+  const systemDay = new Date().getDay();
+  console.log('🍊');
+  const restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, 0]);
+  const restrictedSitesToday = Object.fromEntries(restrictedSitesTodayTime);
+  chromeStorageService.set({ today: systemDay, ...restrictedSitesToday });
   console.log('FIRST FUNCTION CALL');
-  globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, today);
+  const isNewDay = today !== systemDay;
+  globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
   changeBadgeContent(globals.remainingSeconds);
   // TODO: probar un altra funció en lloc de redtabname en focuschanged a vore si funciona y posarli un log diferent o algo
   chrome.windows.onFocusChanged.addListener(readTabName);
@@ -104,12 +114,17 @@ async function runBackground() {
     if (globals.currentIntervalId) return;
     globals.currentIntervalId = setInterval(async () => {
       if (globals.isRestrictedWebsiteActive) {
+        const currentDay = new Date().getDay();
         const restrictedSite = globals.currentRestrictedWebsite;
         const currentSeconds = await chromeStorageService.get(restrictedSite);
+        const currentSecondsToday = await chromeStorageService.get(`${restrictedSite}_${currentDay}`);
         currentSeconds[`${restrictedSite}`] = parseInt(currentSeconds[`${restrictedSite}`], 10) || 0;
         console.log('🌞', currentSeconds);
         chromeStorageService.set(
-          { [restrictedSite]: currentSeconds[restrictedSite] += 10 },
+          {
+            [restrictedSite]: currentSeconds[restrictedSite] += 10,
+            [`${restrictedSite}_${currentDay}`]: currentSecondsToday[`${restrictedSite}_${currentDay}`] += 10,
+          },
         );
         globals.remainingSeconds -= 10;
       }
@@ -145,9 +160,9 @@ function changeBadgeContent(currentSeconds) {
     text: `${`${Math.floor(currentSeconds / 60)}m`}`,
   });
   if (currentSeconds < (5 * 60)) {
-    changeBadgeColor('#FF0000');
+    changeBadgeColor(Colors.red);
   } else {
-    changeBadgeColor('#0000FF');
+    changeBadgeColor(Colors.blue);
   }
 }
 function changeBadgeColor(color) {
@@ -169,10 +184,8 @@ async function saveRemainingMinutes() { // TODO no son seconds?
     remainingTime: globals.remainingSeconds,
   });
 }
-function getRemainingTimer(remaining, max, savedDay) {
-  const currentDay = new Date().getDay();
-
-  if (savedDay !== currentDay) {
+function getRemainingTimer(remaining, max, isNewDay) {
+  if (isNewDay) {
     console.log('Day changed');
     return max;
   }
@@ -187,7 +200,7 @@ function start() {
   }
 }
 /**
- * Recursibe ping each 10 seconds to avoid the background task getting inactive
+ * Recursively ping each 10 seconds to avoid the background task getting inactive
  */
 (function ping() {
   console.log('ping');

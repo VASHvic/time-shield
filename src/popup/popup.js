@@ -4,6 +4,10 @@ const WorkerMessages = {
   updateTimer: 'updateTimer',
   start: 'start',
 };
+const Colors = {
+  blue: '#0000FF',
+  red: '#FF0000',
+};
 
 class StorageService {
   constructor({ storage, defaultValues }) {
@@ -30,6 +34,8 @@ class Popup {
     this.storageService = storageService;
     this.protectedSites = [];
     this.currentMaxAllowedTime = 0;
+    this.restrictedSitesInfo = {};
+    this.today = new Date().getDay();
   }
 
   async start() {
@@ -42,6 +48,7 @@ class Popup {
     const { restrictedSites, maxAllowedTime } = await this.storageService.get();
     this.protectedSites = restrictedSites ?? [];
     this.restrictedSitesInfo = await this.storageService.get(this.protectedSites);
+    this.restrictedSitesInfoToday = await this.storageService.get(this.protectedSites.map((site) => `${site}_${this.today}`));
     this.currentMaxAllowedTime = maxAllowedTime;
     this.timeInput.value = secondsToMinutes(maxAllowedTime);
     this.displaySites();
@@ -80,12 +87,16 @@ class Popup {
   }
 
   displayRestrictedSiteInfo(name) {
-    const info = this.restrictedSitesInfo[name];
-    const minutes = secondsToMinutes(info);
+    const totalInfo = this.restrictedSitesInfo[name];
+    const infoToday = this.restrictedSitesInfoToday[`${name}_${this.today}`];
+    console.log({ infoToday, totalInfo });
+    const minutes = secondsToMinutes(totalInfo);
+    const minutesToday = secondsToMinutes(infoToday);
+    const todaySentence = `\n ${Math.floor(minutesToday)} minutes wasted today`;
     if (minutes < 60) {
-      return `${Math.floor(minutes)} minutes wasted in ${name}`;
+      return `${Math.floor(minutes)} minutes wasted in ${name}${todaySentence}`;
     }
-    return `${minutes / 60} hours wasted in ${name}`;
+    return `${(minutes / 60).toFixed(1)} hours wasted in ${name}${todaySentence}`;
   }
 
   removeListItem(item, name) {
@@ -154,9 +165,9 @@ function changeBadgeContent(currentSeconds) {
     text: `${`${Math.floor(currentSeconds / 60)}m`}`,
   });
   if (currentSeconds < (5 * 60)) {
-    changeBadgeColor('#FF0000');
+    changeBadgeColor(Colors.red);
   } else {
-    changeBadgeColor('#0000FF');
+    changeBadgeColor(Colors.blue);
   }
 }
 
