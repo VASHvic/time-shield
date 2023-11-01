@@ -30,6 +30,7 @@ class Popup {
     this.timeInput = document.getElementById('time-input');
     this.urlList = document.getElementById('lista-urls');
     this.submitButton = document.getElementById('submit-button');
+    this.lockButton = document.getElementById('lock-button');
 
     this.storageService = storageService;
     this.protectedSites = [];
@@ -45,17 +46,28 @@ class Popup {
   }
 
   async loadSettings() {
-    const { restrictedSites, maxAllowedTime } = await this.storageService.get();
+    const { restrictedSites, maxAllowedTime, today } = await this.storageService.get();
     this.protectedSites = restrictedSites ?? [];
     this.restrictedSitesInfo = await this.storageService.get(this.protectedSites);
     this.restrictedSitesInfoToday = await this.storageService.get(this.protectedSites.map((site) => `${site}_${this.today}`));
     this.currentMaxAllowedTime = maxAllowedTime;
     this.timeInput.value = secondsToMinutes(maxAllowedTime);
+    await this.checkLock(today);
     this.displaySites();
+  }
+
+  async checkLock(day) {
+    if (day !== this.today) {
+      await this.storageService.set({ disabled: false });
+    }
+    const { disabled } = await this.storageService.get();
+    this.submitButton.disabled = disabled;
+    this.lockButton.disabled = disabled;
   }
 
   setupEventListeners() {
     this.submitButton.addEventListener('click', async (e) => this.handleSubmit(e));
+    this.lockButton.addEventListener('click', async (e) => this.handleLock(e));
   }
 
   displaySites() {
@@ -115,6 +127,14 @@ class Popup {
     }
     await this.updateStorage();
     sendWorkerMessage(WorkerMessages.start);
+  }
+
+  handleLock(e) {
+    e.preventDefault();
+    this.locked = true;
+    this.submitButton.disabled = true;
+    this.storageService.set({ disabled: true });
+    this.storageService.get(['disabled']);
   }
 
   getUrl() {
@@ -177,7 +197,7 @@ function changeBadgeColor(color) {
 
 async function main() {
   // await chrome.storage.local.clear();
-  const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
+  const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime', 'today', 'disabled'] });
   const popup = new Popup({ storageService: chromeStorageService });
   await popup.start();
 }

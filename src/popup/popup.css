@@ -58,17 +58,31 @@ button[type="submit"] {
   font-weight: bold;
   cursor: pointer;
 }
+button:disabled { 
+  background-color: #ccc;
+  color: #999; 
+  border: 0;
+  cursor: not-allowed; /* Change to "not-allowed" to indicate it's disabled */
+}
 
-button[type="submit"]:hover {
+
+button[type="submit"]:hover:not :disabled {
   background-color: rgb(243, 183, 63);
 }
-div.form-group{
+
+div.form-input{
   margin-bottom: 15px;
   display: flex;
   flex-direction: column;  
   justify-content: center;
   align-items: center;
 }
+div.form-buttons{
+  display: flex;
+  gap: 10%;
+}
+
+
 ul {
   list-style-type: none; 
   margin: 0; 
@@ -93,3 +107,4 @@ li {
 li:hover {
   cursor: pointer;
 }
+
