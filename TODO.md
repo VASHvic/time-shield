@@ -13,6 +13,5 @@
 ## todo
 agrupar funciones de background en un objeto chrome?
 
-
+- Add current website a restricted
 - guardar temps diari, semanal, mensual dedicat a cada página?
-- funcionalitat lock per a no poder cambiar els minuts el mateix dia

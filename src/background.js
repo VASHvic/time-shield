@@ -64,9 +64,23 @@ async function runBackground() {
 
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
   changeBadgeContent(globals.remainingSeconds);
-  // TODO: probar un altra funció en lloc de redtabname en focuschanged
-  // a vore si funciona y posarli un log diferent o algo
-  chrome.windows.onFocusChanged.addListener(readTabName);
+  chrome.windows.onFocusChanged.addListener((windowId) => {
+    console.log('Window', windowId, 'gained focus');
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
+      console.log('Lost focus');
+      if (globals.currentIntervalId) {
+        console.log('Stopping the timer as Chrome lost focus');
+        clearRequestedInterval(globals.currentIntervalId);
+        globals.currentIntervalId = null; // Ensure the interval ID is reset
+        globals.isRestrictedWebsiteActive = false;
+        // Optionally, mark no restricted website as active
+        saveRemainingMinutes(); // Save the remaining minutes as the focus is lost
+      }
+    } else {
+      console.log('Window', windowId, 'gained focus');
+      readTabName();
+    }
+  });
   chrome.tabs.onActivated.addListener(readTabName);
   chrome.tabs.onCreated.addListener(readTabName);
   chrome.tabs.onUpdated.addListener(readTabName);
@@ -74,16 +88,15 @@ async function runBackground() {
     saveRemainingMinutes();
     clearRequestedInterval(globals.currentIntervalId);
   });
-  // TODO: listener para cuando está en segundo plano?
 
   async function readTabName() {
     console.log('Reading tab name');
     if (globals.readingTabName) return;
     globals.readingTabName = true;
-    const { restrictedSites } = await chromeStorageService.get(['restrictedSites']);
+    const { restrictedSites: forbidenSites } = await chromeStorageService.get(['restrictedSites']);
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       console.log(tabs[0]?.url);
-      const restrictedWebsite = restrictedSites.find((w) => tabs[0]?.url.includes(w));
+      const restrictedWebsite = forbidenSites.find((w) => tabs[0]?.url.includes(w));
       globals.currentRestrictedWebsite = restrictedWebsite;
       if (restrictedWebsite) {
         console.log('current restricted website: ', restrictedWebsite);
@@ -112,7 +125,13 @@ async function runBackground() {
    * is active and substract seconds from global count
   */
   function checkCurrentBrowserInfoInterval() {
-    if (globals.currentIntervalId) return;
+    // Clear existing interval if it exists to prevent multiple intervals running simultaneously
+    if (globals.currentIntervalId) {
+      clearInterval(globals.currentIntervalId);
+      globals.currentIntervalId = undefined; // Reset the interval ID
+    }
+
+    // Set a new interval
     globals.currentIntervalId = setInterval(async () => {
       console.log({ restrictedwebsiteactive: globals.isRestrictedWebsiteActive });
       if (globals.isRestrictedWebsiteActive) {
@@ -120,7 +139,7 @@ async function runBackground() {
         const restrictedSite = globals.currentRestrictedWebsite;
         const restrictedSiteObj = await chromeStorageService.get(restrictedSite);
         const restrictedSiteTodayObj = await chromeStorageService.get(`${restrictedSite}_${currentDay}`);
-        const restrictedSiteSavedSecsToday = restrictedSiteTodayObj[`${restrictedSite}_${currentDay}`];
+        const restrictedSiteSavedSecsToday = restrictedSiteTodayObj[`${restrictedSite}_${currentDay}`] || 0;
         console.log('RESTRICTED OBJS!!!');
         console.log({ restrictedSiteObj, restrictedSiteTodayObj, restrictedSiteSavedSecsToday });
         restrictedSiteObj[`${restrictedSite}`] = parseInt(restrictedSiteObj[`${restrictedSite}`], 10) || 0;
