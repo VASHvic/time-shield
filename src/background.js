@@ -3,9 +3,9 @@ const globals = {
   isAppRunning: false,
   readingTabName: false,
   isRestrictedWebsiteActive: false,
-  remainingSeconds: undefined,
-  currentIntervalId: undefined,
-  currentRestrictedWebsite: undefined,
+  remainingSeconds: 0,
+  currentIntervalId: 0,
+  currentRestrictedWebsite: 0,
 };
 
 const WorkerMessages = {
@@ -38,7 +38,6 @@ class StorageService {
   }
 }
 const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
-
 chrome.runtime.onMessage.addListener((request) => {
   if (request.message === WorkerMessages.updateTimer) {
     console.log('⌚');
@@ -59,12 +58,14 @@ async function runBackground() {
   console.log('🍊');
   const restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, 0]);
   const restrictedSitesToday = Object.fromEntries(restrictedSitesTodayTime);
-  chromeStorageService.set({ today: systemDay, ...restrictedSitesToday });
-  console.log('FIRST FUNCTION CALL');
   const isNewDay = today !== systemDay;
+  chromeStorageService.set({ today: systemDay, isNewDay, ...restrictedSitesToday });
+  console.log('FIRST FUNCTION CALL');
+
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
   changeBadgeContent(globals.remainingSeconds);
-  // TODO: probar un altra funció en lloc de redtabname en focuschanged a vore si funciona y posarli un log diferent o algo
+  // TODO: probar un altra funció en lloc de redtabname en focuschanged
+  // a vore si funciona y posarli un log diferent o algo
   chrome.windows.onFocusChanged.addListener(readTabName);
   chrome.tabs.onActivated.addListener(readTabName);
   chrome.tabs.onCreated.addListener(readTabName);
@@ -113,20 +114,26 @@ async function runBackground() {
   function checkCurrentBrowserInfoInterval() {
     if (globals.currentIntervalId) return;
     globals.currentIntervalId = setInterval(async () => {
+      console.log({ restrictedwebsiteactive: globals.isRestrictedWebsiteActive });
       if (globals.isRestrictedWebsiteActive) {
         const currentDay = new Date().getDay();
         const restrictedSite = globals.currentRestrictedWebsite;
-        const currentSeconds = await chromeStorageService.get(restrictedSite);
-        const currentSecondsToday = await chromeStorageService.get(`${restrictedSite}_${currentDay}`);
-        currentSeconds[`${restrictedSite}`] = parseInt(currentSeconds[`${restrictedSite}`], 10) || 0;
-        console.log('🌞', currentSeconds);
-        chromeStorageService.set(
+        const restrictedSiteObj = await chromeStorageService.get(restrictedSite);
+        const restrictedSiteTodayObj = await chromeStorageService.get(`${restrictedSite}_${currentDay}`);
+        const restrictedSiteSavedSecsToday = restrictedSiteTodayObj[`${restrictedSite}_${currentDay}`];
+        console.log('RESTRICTED OBJS!!!');
+        console.log({ restrictedSiteObj, restrictedSiteTodayObj, restrictedSiteSavedSecsToday });
+        restrictedSiteObj[`${restrictedSite}`] = parseInt(restrictedSiteObj[`${restrictedSite}`], 10) || 0;
+        console.log('🌞', restrictedSiteObj);
+        await chromeStorageService.set(
           {
-            [restrictedSite]: currentSeconds[restrictedSite] += 10,
-            [`${restrictedSite}_${currentDay}`]: currentSecondsToday[`${restrictedSite}_${currentDay}`] += 10,
+            [restrictedSite]: restrictedSiteObj[restrictedSite] += 10,
+            [`${restrictedSite}_${currentDay}`]: restrictedSiteSavedSecsToday + 10,
           },
         );
         globals.remainingSeconds -= 10;
+        console.log({ currentDay });
+        await chromeStorageService.get([restrictedSite, `${restrictedSite}_${currentDay}`]).then((res) => console.log('132', res));
       }
       console.log('remainingTimer 👀', globals.remainingSeconds);
       changeBadgeContent(globals.remainingSeconds);

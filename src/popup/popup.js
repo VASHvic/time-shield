@@ -50,6 +50,7 @@ class Popup {
     this.protectedSites = restrictedSites ?? [];
     this.restrictedSitesInfo = await this.storageService.get(this.protectedSites);
     this.restrictedSitesInfoToday = await this.storageService.get(this.protectedSites.map((site) => `${site}_${this.today}`));
+    console.log('🎁', this.restrictedSitesInfoToday);
     this.currentMaxAllowedTime = maxAllowedTime;
     this.timeInput.value = secondsToMinutes(maxAllowedTime);
     await this.checkLock(today);
@@ -57,10 +58,13 @@ class Popup {
   }
 
   async checkLock(day) {
-    if (day !== this.today) {
-      await this.storageService.set({ disabled: false });
+    const { isNewDay, disabled } = await this.storageService.get(['isNewDay', 'disabled']);
+    console.log('⌚', {
+      day, today: this.today, isNewDay, disabled,
+    });
+    if (isNewDay && disabled) {
+      await this.storageService.set({ disabled: false, isNewDay: false });
     }
-    const { disabled } = await this.storageService.get();
     this.submitButton.disabled = disabled;
     this.lockButton.disabled = disabled;
   }
@@ -134,7 +138,6 @@ class Popup {
     this.locked = true;
     this.submitButton.disabled = true;
     this.storageService.set({ disabled: true });
-    this.storageService.get(['disabled']);
   }
 
   getUrl() {
