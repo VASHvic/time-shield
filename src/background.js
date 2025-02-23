@@ -4,8 +4,8 @@ const globals = {
   readingTabName: false,
   isRestrictedWebsiteActive: false,
   remainingSeconds: 0,
-  currentIntervalId: 0,
-  currentRestrictedWebsite: 0,
+  currentIntervalId: null,
+  currentRestrictedWebsite: null,
 };
 
 const WorkerMessages = {
@@ -31,10 +31,7 @@ class StorageService {
   }
 
   async printStorage() {
-    const { restrictedSites } = await this.localStorage.get(['restrictedSites']);
-    console.log('PRINTING STORAGE');
-    this.localStorage.get(['maxAllowedTime', 'today', 'remainingTime', ...restrictedSites]).then(console.log);
-    this.localStorage.get(['meneame_0', 'twitter_0']).then(console.log);
+    this.localStorage.get(null, (data) => { console.log({ data }); });
   }
 }
 const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
@@ -53,15 +50,31 @@ async function runBackground() {
     maxAllowedTime, remainingTime, today, restrictedSites,
   } = await chromeStorageService.get(['maxAllowedTime', 'today', 'remainingTime', 'restrictedSites']);
   console.log('INITIAL DATA LOADED');
-  if (!maxAllowedTime) return;
+  if (!maxAllowedTime) return; // App only works if maxAllowedTime is set
   const systemDay = new Date().getDay();
-  console.log('🍊');
-  const restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, 0]);
-  const restrictedSitesToday = Object.fromEntries(restrictedSitesTodayTime);
   const isNewDay = today !== systemDay;
-  chromeStorageService.set({ today: systemDay, isNewDay, ...restrictedSitesToday });
-  console.log('FIRST FUNCTION CALL');
-
+  console.log({ isNewDay });
+  let restrictedSitesTodayTime = [];
+  if (restrictedSites?.lengh) {
+    console.log('RESTICTED SITES ON START');
+    console.log(restrictedSites);
+    if (isNewDay) {
+      console.log({ isNewDay });
+      // It's a new day, so reset the time for each restricted site to 0
+      restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, 0]);
+    } else {
+      console.log('Entra en el else y se suposa que recu[era el tems de la web actual');
+      // Not a new day, fetch the existing times to preserve them
+      const keysToFetch = restrictedSites.map((value) => `${value}_${systemDay}`);
+      const existingTimes = await chromeStorageService.get(keysToFetch);
+      console.log({ keysToFetch, existingTimes });
+      restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, existingTimes[`${value}_${systemDay}`] || 0]);
+    }
+  }
+  const restrictedSitesToday = Object.fromEntries(restrictedSitesTodayTime);
+  // Update 'today' regardless of whether it's a new day to ensure 'today' is always current
+  chromeStorageService.set({ today: systemDay, ...restrictedSitesToday });
+  console.log('Updated daily times for restricted sites.');
   globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
   changeBadgeContent(globals.remainingSeconds);
   chrome.windows.onFocusChanged.addListener((windowId) => {
@@ -70,7 +83,7 @@ async function runBackground() {
       console.log('Lost focus');
       if (globals.currentIntervalId) {
         console.log('Stopping the timer as Chrome lost focus');
-        clearRequestedInterval(globals.currentIntervalId);
+        clearCurrentInterval();
         globals.currentIntervalId = null; // Ensure the interval ID is reset
         globals.isRestrictedWebsiteActive = false;
         // Optionally, mark no restricted website as active
@@ -86,7 +99,7 @@ async function runBackground() {
   chrome.tabs.onUpdated.addListener(readTabName);
   chrome.runtime.onSuspend.addListener(() => {
     saveRemainingMinutes();
-    clearRequestedInterval(globals.currentIntervalId);
+    clearCurrentInterval();
   });
 
   async function readTabName() {
@@ -111,24 +124,20 @@ async function runBackground() {
         saveRemainingMinutes();
         console.log(`The website is not restricted, canceling the interval ${globals.currentIntervalId}`);
         chromeStorageService.printStorage();
-        clearRequestedInterval(globals.currentIntervalId);
-        globals.currentIntervalId = undefined;
+        clearCurrentInterval();
+        globals.currentIntervalId = null;
       }
     });
-    // To avoid calling this function in multiple listeners
-    setTimeout(() => {
-      globals.readingTabName = false;
-    }, 100);
+    globals.readingTabName = false;
   }
   /**
    * Check each 10 seconds if the global isRestrictedWebsite
    * is active and substract seconds from global count
   */
   function checkCurrentBrowserInfoInterval() {
-    // Clear existing interval if it exists to prevent multiple intervals running simultaneously
     if (globals.currentIntervalId) {
       clearInterval(globals.currentIntervalId);
-      globals.currentIntervalId = undefined; // Reset the interval ID
+      globals.currentIntervalId = null;
     }
 
     // Set a new interval
@@ -195,9 +204,10 @@ function changeBadgeColor(color) {
   chrome.action.setBadgeBackgroundColor({ color });
 }
 
-function clearRequestedInterval(intervalIdToDelete) {
-  if (intervalIdToDelete) {
-    clearInterval(intervalIdToDelete);
+function clearCurrentInterval() {
+  if (globals.currentIntervalId) {
+    clearInterval(globals.currentIntervalId);
+    globals.currentIntervalId = null;
   }
 }
 

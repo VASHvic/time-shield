@@ -143,6 +143,7 @@ const Popup = {
   },
 
   removeListItem(item, name) {
+    // TODO remove from storage keys related
     item.remove();
     this.protectedSites = this.protectedSites?.filter((site) => site !== name);
     this.updateStorage();
