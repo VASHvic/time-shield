@@ -1,4 +1,30 @@
 /* global chrome */
+
+// Constants
+const CONSTANTS = {
+  ALARM_NAME: 'timeShieldAlarm',
+  CHECK_INTERVAL: 10000, // 10 seconds
+  STORAGE_KEYS: {
+    RESTRICTED_SITES: 'restrictedSites',
+    MAX_ALLOWED_TIME: 'maxAllowedTime',
+    REMAINING_TIME: 'remainingTime',
+    TODAY: 'today'
+  }
+};
+
+const WorkerMessages = {
+  updateTimer: 'updateTimer',
+  start: 'start',
+  error: 'error'
+};
+
+const Colors = {
+  blue: '#0000FF',
+  red: '#FF0000',
+  green: '#00FF00'
+};
+
+// Global state
 const globals = {
   isAppRunning: false,
   readingTabName: false,
@@ -8,14 +34,19 @@ const globals = {
   currentRestrictedWebsite: null,
 };
 
-const WorkerMessages = {
-  updateTimer: 'updateTimer',
-  start: 'start',
+// Error handling utility
+const ErrorHandler = {
+  handle: (error, context) => {
+    console.error(`Error in ${context}:`, error);
+    chrome.runtime.sendMessage({
+      message: WorkerMessages.error,
+      error: error.message,
+      context
+    });
+  }
 };
-const Colors = {
-  blue: '#0000FF',
-  red: '#FF0000',
-};
+
+// Storage service
 class StorageService {
   constructor({ storage, defaultValues }) {
     this.defaultValues = defaultValues;
@@ -23,86 +54,128 @@ class StorageService {
   }
 
   async get(storedList) {
-    return this.localStorage.get(storedList ?? this.defaultValues);
+    try {
+      return this.localStorage.get(storedList ?? this.defaultValues);
+    } catch (error) {
+      ErrorHandler.handle(error, 'StorageService.get');
+    }
   }
 
   async set(values) {
-    await this.localStorage.set(values);
+    try {
+      await this.localStorage.set(values);
+    } catch (error) {
+      ErrorHandler.handle(error, 'StorageService.set');
+    }
   }
 
   async printStorage() {
-    this.localStorage.get(null, (data) => { console.log({ data }); });
+    try {
+      this.localStorage.get(null, (data) => { console.log({ data }); });
+    } catch (error) {
+      ErrorHandler.handle(error, 'StorageService.printStorage');
+    }
   }
 }
+
 const chromeStorageService = new StorageService({ storage: chrome.storage.local, defaultValues: ['restrictedSites', 'maxAllowedTime'] });
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.message === WorkerMessages.updateTimer) {
-    console.log('⌚');
-    updateCurrentTimer();
-  }
-  if (request.message === WorkerMessages.start) {
+
+// Improved background runner with error handling
+async function runBackground() {
+  try {
+    const {
+      maxAllowedTime,
+      remainingTime,
+      today,
+      restrictedSites,
+    } = await chromeStorageService.get([
+      CONSTANTS.STORAGE_KEYS.MAX_ALLOWED_TIME,
+      CONSTANTS.STORAGE_KEYS.TODAY,
+      CONSTANTS.STORAGE_KEYS.REMAINING_TIME,
+      CONSTANTS.STORAGE_KEYS.RESTRICTED_SITES
+    ]);
+
+    const currentDate = new Date().toLocaleDateString();
+    const isNewDay = today !== currentDate;
+
+    if (!maxAllowedTime || !restrictedSites) {
+      console.log('Extension not configured yet');
+      return;
+    }
+
+    globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
+    
+    if (isNewDay) {
+      await chromeStorageService.set({ today: currentDate });
+    }
+
     start();
+  } catch (error) {
+    ErrorHandler.handle(error, 'runBackground');
+  }
+}
+
+// Improved notification handling
+async function showNotification() {
+  try {
+    const options = {
+      type: 'basic',
+      iconUrl: '../shield.png',
+      title: 'Time Shield Alert',
+      message: 'Your allocated time for this website has expired!',
+      priority: 2
+    };
+    
+    await chrome.notifications.create('timeExpired', options);
+    changeBadgeColor(Colors.red);
+  } catch (error) {
+    ErrorHandler.handle(error, 'showNotification');
+  }
+}
+
+// Initialize extension
+chrome.runtime.onInstalled.addListener(() => {
+  try {
+    console.log('Time Shield installed/updated');
+    runBackground();
+  } catch (error) {
+    ErrorHandler.handle(error, 'onInstalled');
   }
 });
 
-async function runBackground() {
-  const {
-    maxAllowedTime, remainingTime, today, restrictedSites,
-  } = await chromeStorageService.get(['maxAllowedTime', 'today', 'remainingTime', 'restrictedSites']);
-  console.log('INITIAL DATA LOADED');
-  if (!maxAllowedTime) return; // App only works if maxAllowedTime is set
-  const systemDay = new Date().getDay();
-  const isNewDay = today !== systemDay;
-  console.log({ isNewDay });
-  let restrictedSitesTodayTime = [];
-  if (restrictedSites?.lengh) {
-    console.log('RESTICTED SITES ON START');
-    console.log(restrictedSites);
-    if (isNewDay) {
-      console.log({ isNewDay });
-      // It's a new day, so reset the time for each restricted site to 0
-      restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, 0]);
-    } else {
-      console.log('Entra en el else y se suposa que recu[era el tems de la web actual');
-      // Not a new day, fetch the existing times to preserve them
-      const keysToFetch = restrictedSites.map((value) => `${value}_${systemDay}`);
-      const existingTimes = await chromeStorageService.get(keysToFetch);
-      console.log({ keysToFetch, existingTimes });
-      restrictedSitesTodayTime = restrictedSites.map((value) => [`${value}_${systemDay}`, existingTimes[`${value}_${systemDay}`] || 0]);
+// Message handling
+chrome.runtime.onMessage.addListener((request) => {
+  try {
+    switch (request.message) {
+      case WorkerMessages.updateTimer:
+        console.log('⌚ Timer update requested');
+        updateCurrentTimer();
+        break;
+      case WorkerMessages.start:
+        console.log('▶️ Start requested');
+        start();
+        break;
+      default:
+        console.log('Unknown message:', request.message);
     }
+  } catch (error) {
+    ErrorHandler.handle(error, 'onMessage');
   }
-  const restrictedSitesToday = Object.fromEntries(restrictedSitesTodayTime);
-  // Update 'today' regardless of whether it's a new day to ensure 'today' is always current
-  chromeStorageService.set({ today: systemDay, ...restrictedSitesToday });
-  console.log('Updated daily times for restricted sites.');
-  globals.remainingSeconds = getRemainingTimer(remainingTime, maxAllowedTime, isNewDay);
-  changeBadgeContent(globals.remainingSeconds);
-  chrome.windows.onFocusChanged.addListener((windowId) => {
-    console.log('Window', windowId, 'gained focus');
-    if (windowId === chrome.windows.WINDOW_ID_NONE) {
-      console.log('Lost focus');
-      if (globals.currentIntervalId) {
-        console.log('Stopping the timer as Chrome lost focus');
-        clearCurrentInterval();
-        globals.currentIntervalId = null; // Ensure the interval ID is reset
-        globals.isRestrictedWebsiteActive = false;
-        // Optionally, mark no restricted website as active
-        saveRemainingMinutes(); // Save the remaining minutes as the focus is lost
-      }
-    } else {
-      console.log('Window', windowId, 'gained focus');
-      readTabName();
-    }
-  });
-  chrome.tabs.onActivated.addListener(readTabName);
-  chrome.tabs.onCreated.addListener(readTabName);
-  chrome.tabs.onUpdated.addListener(readTabName);
-  chrome.runtime.onSuspend.addListener(() => {
-    saveRemainingMinutes();
-    clearCurrentInterval();
-  });
+});
 
-  async function readTabName() {
+// Health check ping
+(function ping() {
+  try {
+    console.log('🏓 Service worker ping');
+    setTimeout(ping, CONSTANTS.CHECK_INTERVAL);
+  } catch (error) {
+    ErrorHandler.handle(error, 'ping');
+  }
+})();
+
+// Read tab name
+async function readTabName() {
+  try {
     console.log('Reading tab name');
     if (globals.readingTabName) return;
     globals.readingTabName = true;
@@ -129,12 +202,14 @@ async function runBackground() {
       }
     });
     globals.readingTabName = false;
+  } catch (error) {
+    ErrorHandler.handle(error, 'readTabName');
   }
-  /**
-   * Check each 10 seconds if the global isRestrictedWebsite
-   * is active and substract seconds from global count
-  */
-  function checkCurrentBrowserInfoInterval() {
+}
+
+// Check current browser info interval
+function checkCurrentBrowserInfoInterval() {
+  try {
     if (globals.currentIntervalId) {
       clearInterval(globals.currentIntervalId);
       globals.currentIntervalId = null;
@@ -169,79 +244,137 @@ async function runBackground() {
         showNotification();
       }
     }, 10000);
+  } catch (error) {
+    ErrorHandler.handle(error, 'checkCurrentBrowserInfoInterval');
   }
 }
 
+// Update current timer
 async function updateCurrentTimer() {
-  const { maxAllowedTime } = await chromeStorageService.get('maxAllowedTime');
-  console.log(`log maxAllowedTime en storage ${maxAllowedTime}`);
-  if (maxAllowedTime) {
-    globals.remainingSeconds = parseInt(maxAllowedTime, 10);
-    console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
+  try {
+    const { maxAllowedTime } = await chromeStorageService.get('maxAllowedTime');
+    console.log(`log maxAllowedTime en storage ${maxAllowedTime}`);
+    if (maxAllowedTime) {
+      globals.remainingSeconds = parseInt(maxAllowedTime, 10);
+      console.log(`Remaining seconds from the listener: ${globals.remainingSeconds}`);
+    }
+  } catch (error) {
+    ErrorHandler.handle(error, 'updateCurrentTimer');
   }
 }
 
-function showNotification() {
-  chrome.notifications.create({
-    type: 'basic',
-    title: 'Time Shield Extension',
-    message: 'Time to close that tab',
-    iconUrl: 'shield.png',
-  });
-}
-
+// Change badge content
 function changeBadgeContent(currentSeconds) {
-  chrome.action.setBadgeText({
-    text: `${`${Math.floor(currentSeconds / 60)}m`}`,
-  });
-  if (currentSeconds < (5 * 60)) {
-    changeBadgeColor(Colors.red);
-  } else {
-    changeBadgeColor(Colors.blue);
+  try {
+    chrome.action.setBadgeText({
+      text: `${`${Math.floor(currentSeconds / 60)}m`}`,
+    });
+    if (currentSeconds < (5 * 60)) {
+      changeBadgeColor(Colors.red);
+    } else {
+      changeBadgeColor(Colors.blue);
+    }
+  } catch (error) {
+    ErrorHandler.handle(error, 'changeBadgeContent');
   }
 }
+
+// Change badge color
 function changeBadgeColor(color) {
-  chrome.action.setBadgeBackgroundColor({ color });
+  try {
+    chrome.action.setBadgeBackgroundColor({ color });
+  } catch (error) {
+    ErrorHandler.handle(error, 'changeBadgeColor');
+  }
 }
 
+// Clear current interval
 function clearCurrentInterval() {
-  if (globals.currentIntervalId) {
-    clearInterval(globals.currentIntervalId);
-    globals.currentIntervalId = null;
+  try {
+    if (globals.currentIntervalId) {
+      clearInterval(globals.currentIntervalId);
+      globals.currentIntervalId = null;
+    }
+  } catch (error) {
+    ErrorHandler.handle(error, 'clearCurrentInterval');
   }
 }
 
-async function saveRemainingMinutes() { // TODO no son seconds?
-  console.log('Lo que guarde en storage');
-  console.log({
-    remainingTime: globals.remainingSeconds,
-  });
-  chromeStorageService.set({
-    remainingTime: globals.remainingSeconds,
-  });
+// Save remaining minutes
+async function saveRemainingMinutes() {
+  try {
+    console.log('Lo que guarde en storage');
+    console.log({
+      remainingTime: globals.remainingSeconds,
+    });
+    chromeStorageService.set({
+      remainingTime: globals.remainingSeconds,
+    });
+  } catch (error) {
+    ErrorHandler.handle(error, 'saveRemainingMinutes');
+  }
 }
+
+// Get remaining timer
 function getRemainingTimer(remaining, max, isNewDay) {
-  if (isNewDay) {
-    console.log('Day changed');
-    return max;
-  }
+  try {
+    if (isNewDay) {
+      console.log('Day changed');
+      return max;
+    }
 
-  return Math.min(remaining, max);
+    return Math.min(remaining, max);
+  } catch (error) {
+    ErrorHandler.handle(error, 'getRemainingTimer');
+  }
 }
 
+// Start
 function start() {
-  if (!globals.isAppRunning) {
-    runBackground();
-    globals.isAppRunning = true;
+  try {
+    if (!globals.isAppRunning) {
+      runBackground();
+      globals.isAppRunning = true;
+    }
+  } catch (error) {
+    ErrorHandler.handle(error, 'start');
   }
 }
-/**
- * Recursively ping each 10 seconds to avoid the background task getting inactive
- */
-(function ping() {
-  console.log('ping');
-  chromeStorageService.printStorage();
-  setTimeout(ping, 10000);
-}());
 
-start();
+// Window focus changed listener
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  try {
+    console.log('Window', windowId, 'gained focus');
+    if (windowId === chrome.windows.WINDOW_ID_NONE) {
+      console.log('Lost focus');
+      if (globals.currentIntervalId) {
+        console.log('Stopping the timer as Chrome lost focus');
+        clearCurrentInterval();
+        globals.currentIntervalId = null; // Ensure the interval ID is reset
+        globals.isRestrictedWebsiteActive = false;
+        // Optionally, mark no restricted website as active
+        saveRemainingMinutes(); // Save the remaining minutes as the focus is lost
+      }
+    } else {
+      console.log('Window', windowId, 'gained focus');
+      readTabName();
+    }
+  } catch (error) {
+    ErrorHandler.handle(error, 'onFocusChanged');
+  }
+});
+
+// Tab listeners
+chrome.tabs.onActivated.addListener(readTabName);
+chrome.tabs.onCreated.addListener(readTabName);
+chrome.tabs.onUpdated.addListener(readTabName);
+
+// Runtime on suspend listener
+chrome.runtime.onSuspend.addListener(() => {
+  try {
+    saveRemainingMinutes();
+    clearCurrentInterval();
+  } catch (error) {
+    ErrorHandler.handle(error, 'onSuspend');
+  }
+});

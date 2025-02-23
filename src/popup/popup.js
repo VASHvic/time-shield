@@ -93,11 +93,30 @@ const Popup = {
   setupEventListeners() {
     this.submitButton.addEventListener('click', (e) => {
       e.preventDefault();
-      this.handleSubmit(e).catch(console.error);
+      this.handleSubmit();
     });
-    this.lockButton.addEventListener('click', (e) => {
-      e.preventDefault();
-      this.handleLock(e).catch(console.error);
+    
+    // Lock button now shows warning dialog
+    this.lockButton.addEventListener('click', () => {
+      document.getElementById('warning-dialog').classList.add('show');
+    });
+    
+    // Cancel lock
+    document.getElementById('cancel-lock').addEventListener('click', () => {
+      document.getElementById('warning-dialog').classList.remove('show');
+    });
+    
+    // Confirm lock
+    document.getElementById('confirm-lock').addEventListener('click', () => {
+      this.handleLock();
+      document.getElementById('warning-dialog').classList.remove('show');
+    });
+    
+    // Close dialog when clicking outside
+    document.getElementById('warning-dialog').addEventListener('click', (e) => {
+      if (e.target.classList.contains('dialog')) {
+        document.getElementById('warning-dialog').classList.remove('show');
+      }
     });
   },
 
@@ -107,46 +126,87 @@ const Popup = {
 
   addUrlListItem(name) {
     const websiteListItem = this.createListItem(name);
-    if (this.restrictedSitesInfo[name]) {
-      this.addAditionalInfo(websiteListItem, name);
-    }
     this.urlList.appendChild(websiteListItem);
   },
 
   createListItem(name) {
-    const websiteListItem = document.createElement('li');
-    websiteListItem.textContent = name;
-    websiteListItem.addEventListener('click', () => {
-      this.removeListItem(websiteListItem, name);
-    });
-    return websiteListItem;
+    const li = document.createElement('li');
+    li.className = 'site-card';
+    
+    // Create main content container
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'site-content';
+    
+    // Create website name with favicon
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'site-name';
+    const favicon = document.createElement('img');
+    favicon.src = `https://www.google.com/s2/favicons?domain=${name}`;
+    favicon.alt = '';
+    favicon.className = 'site-favicon';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+    nameDiv.appendChild(favicon);
+    nameDiv.appendChild(nameSpan);
+    
+    // Create info container
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'site-info';
+    
+    // Create remove button
+    const removeButton = document.createElement('button');
+    removeButton.className = 'remove-button';
+    removeButton.textContent = '×';
+    removeButton.title = 'Remove site';
+    
+    removeButton.onclick = (e) => {
+      e.stopPropagation();
+      li.classList.add('removing');
+      setTimeout(() => {
+        this.removeListItem(li, name);
+      }, 300);
+    };
+    
+    contentDiv.appendChild(nameDiv);
+    contentDiv.appendChild(infoDiv);
+    li.appendChild(contentDiv);
+    li.appendChild(removeButton);
+    
+    // Load info immediately
+    this.addAdditionalInfo(infoDiv, name);
+    
+    return li;
   },
 
-  addAditionalInfo(element, name) {
-    const infoIcon = document.createElement('span');
-    infoIcon.textContent = ' 💡';
-    infoIcon.setAttribute('title', this.displayRestrictedSiteInfo(name));
-    element.appendChild(infoIcon);
+  async addAdditionalInfo(element, name) {
+    const info = await this.displayRestrictedSiteInfo(name);
+    element.textContent = info;
   },
 
   displayRestrictedSiteInfo(name) {
-    const totalInfo = this.restrictedSitesInfo[name];
-    const infoToday = this.restrictedSitesInfoToday[`${name}_${this.today}`];
+    const infoToday = this.restrictedSitesInfo[`${name}_${this.today}`] || 0;
+    const totalInfo = this.restrictedSitesInfo[name] || 0;
     console.log({ infoToday, totalInfo });
     const minutes = secondsToMinutesAsText(totalInfo);
     const minutesToday = secondsToMinutesAsText(infoToday);
-    const todaySentence = `\n ${Math.floor(minutesToday)} minutes wasted today`;
-    if (minutes < 60) {
-      return `${Math.floor(minutes)} minutes wasted in ${name}${todaySentence}`;
-    }
-    return `${(minutes / 60).toFixed(1)} hours wasted in ${name}${todaySentence}`;
+    
+    const formattedMinutes = minutes < 60 ? 
+      `${Math.floor(minutes)}m` : 
+      `${(minutes / 60).toFixed(1)}h`;
+    const formattedToday = `${Math.floor(minutesToday)}m`;
+    
+    return `Today: ${formattedToday} • Total: ${formattedMinutes}`;
   },
 
   removeListItem(item, name) {
-    // TODO remove from storage keys related
-    item.remove();
-    this.protectedSites = this.protectedSites?.filter((site) => site !== name);
-    this.updateStorage();
+    const index = this.protectedSites.indexOf(name);
+    if (index > -1) {
+      this.protectedSites.splice(index, 1);
+      item.addEventListener('transitionend', () => {
+        item.remove();
+      });
+      this.updateStorage();
+    }
   },
 
   async handleSubmit() {
@@ -160,10 +220,13 @@ const Popup = {
     sendWorkerMessage(WorkerMessages.start);
   },
 
-  handleLock() {
-    this.locked = true;
-    this.submitButton.disabled = true;
-    chrome.storage.local.set({ disabled: true });
+  async handleLock() {
+    const today = new Date().getDay();
+    await chrome.storage.local.set({ disabled: today });
+    this.timeInput.disabled = true;
+    this.lockButton.disabled = true;
+    this.lockButton.textContent = 'Time Locked';
+    this.lockButton.style.opacity = '0.6';
   },
 
   getUrl() {

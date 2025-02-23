@@ -1,27 +1,30 @@
 {
   "manifest_version": 3,
   "name": "Time Shield",
-  "version":"1.0.0",
-  "description": "Productivity extension to reduce procastination",
+  "version": "1.0.0",
+  "description": "Take control of your online time with Time Shield - A powerful productivity tool that helps you manage and limit time spent on specific websites. Set daily limits, track usage, and stay focused.",
+  "author": "Time Shield",
   "icons": {
     "16": "shield.png",
     "48": "shield.png",
     "128": "shield.png"
   },
-  
-  "action":{
-    "default_title": "Time Protector Action Title",
+  "action": {
+    "default_title": "Time Shield",
     "default_popup": "./popup/popup.html",
-    "default_icon":{
+    "default_icon": {
       "16": "shield.png",
       "48": "shield.png",
       "128": "shield.png"
     }
   },
   "options_page": "./options/options.html",
-  "permissions": ["storage","tabs","alarms","notifications","windows"],
+  "permissions": ["storage", "tabs", "alarms", "notifications", "windows"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  }
+  },
+  "homepage_url": "https://github.com/VASHvic/time-shield",
+  "minimum_chrome_version": "88",
+  "offline_enabled": true
 }

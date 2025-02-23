@@ -14,7 +14,7 @@
   </div>
   <form>
     <div class="form-input">
-      <label for="url">Add a tracked website</label>
+      <label for="url">Add a website that you want to limit time on</label>
       <input type="text" id="limited-url-input" name="url">
     </div>
     <div class="form-input">
@@ -23,12 +23,25 @@
     </div>
     <div class="form-buttons">
       <button type="submit" id="submit-button">Save Time</button>
-      <button type="button" id="lock-button" title="Warning: You won't be able to change the minutes for the rest of the day">Lock Time</button>
+      <button type="button" id="lock-button">Lock Time</button>
     </div>
   </form> 
   <article id="sites">
     <ul id="lista-urls"></ul>
   </article>
+
+  <!-- Warning Dialog -->
+  <div id="warning-dialog" class="dialog">
+    <div class="dialog-content">
+      <h2>⚠️ Warning</h2>
+      <p>Once you lock the time limit, you won't be able to change it until tomorrow.</p>
+      <p>Are you sure you want to proceed?</p>
+      <div class="dialog-buttons">
+        <button id="cancel-lock" class="secondary-button">Cancel</button>
+        <button id="confirm-lock" class="warning-button">Yes, Lock Time</button>
+      </div>
+    </div>
+  </div>
 </body>
 <script src="popup.js"></script>
 </html>
