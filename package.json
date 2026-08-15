@@ -1,0 +1,61 @@
+{
+  "name": "time-shield",
+  "version": "1.0.0",
+  "description": "Take control of your online time with Time Shield - A powerful productivity tool that helps you manage and limit time spent on specific websites.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "format": "biome format --write ./src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "chrome-extension",
+    "productivity",
+    "time-management"
+  ],
+  "author": "Time Shield",
+  "license": "MIT",
+  "homepage": "https://github.com/VASHvic/time-shield",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VASHvic/time-shield.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VASHvic/time-shield/issues"
+  },
+  "funding": {
+    "type": "ko-fi",
+    "url": "https://ko-fi.com/TODO-KOFI-USERNAME"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@crxjs/vite-plugin": "^2.0.0-beta.25",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/chrome": "^0.0.277",
+    "@types/node": "^24.10.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^30.0.1",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^4.1.10"
+  }
+}

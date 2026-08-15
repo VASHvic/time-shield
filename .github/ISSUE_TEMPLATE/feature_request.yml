@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an idea for Time Shield
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea! Before posting, check the
+        [roadmap in Plan.md](https://github.com/VASHvic/time-shield/blob/main/Plan.md)
+        — the idea may already be planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: A clear, short description of the pain point.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Include mockups or sketches if you have them.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Core (time limits / blocking)
+        - Insights & statistics
+        - Privacy & data
+        - Design / usability
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

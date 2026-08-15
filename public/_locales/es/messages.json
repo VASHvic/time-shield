@@ -1,0 +1,218 @@
+{
+  "appName": {
+    "message": "Time Shield"
+  },
+  "appDescription": {
+    "message": "Toma el control de tu tiempo en línea con Time Shield - Una poderosa herramienta de productividad que te ayuda a gestionar y limitar el tiempo que pasas en sitios web específicos. Establece límites diarios, realiza un seguimiento del uso y mantente enfocado."
+  },
+  "statusLocked": {
+    "message": "Bloqueado"
+  },
+  "statusUnlocked": {
+    "message": "Desbloqueado"
+  },
+  "lockedBanner": {
+    "message": "La configuración está bloqueada. Se desbloqueará a medianoche en $1."
+  },
+  "remainingToday": {
+    "message": "Restante hoy"
+  },
+  "dailyLimit": {
+    "message": "Límite diario"
+  },
+  "dailyLimitUsage": {
+    "message": "Uso del límite diario"
+  },
+  "limitReached": {
+    "message": "Límite alcanzado por hoy. El tiempo está bloqueado hasta la medianoche."
+  },
+  "usedToday": {
+    "message": "$1 usado hoy"
+  },
+  "noLimitSet": {
+    "message": "Aún no hay límite diario."
+  },
+  "noLimitSetCta": {
+    "message": "Establece uno abajo"
+  },
+  "noLimitSetTail": {
+    "message": "para empezar a proteger tu tiempo."
+  },
+  "addSite": {
+    "message": "Añadir un sitio"
+  },
+  "websiteToLimit": {
+    "message": "Sitio web a limitar"
+  },
+  "urlPlaceholder": {
+    "message": "youtube.com, reddit, x.com"
+  },
+  "currentTabHint": {
+    "message": "Pestaña actual: $1"
+  },
+  "addCurrentSite": {
+    "message": "Añadir"
+  },
+  "minUnit": {
+    "message": "min"
+  },
+  "limitHint": {
+    "message": "Se aplica a todos los sitios restringidos · se reinicia a medianoche"
+  },
+  "save": {
+    "message": "Guardar"
+  },
+  "saved": {
+    "message": "Guardado"
+  },
+  "restrictedSites": {
+    "message": "Sitios restringidos"
+  },
+  "loadingRestrictedSites": {
+    "message": "Cargando sitios restringidos"
+  },
+  "noRestrictedSites": {
+    "message": "Aún no hay sitios restringidos"
+  },
+  "noRestrictedSitesHint": {
+    "message": "Añade tu primer sitio arriba para empezar a recuperar tu tiempo."
+  },
+  "lockTime": {
+    "message": "Bloquear límite de tiempo"
+  },
+  "timeLocked": {
+    "message": "Tiempo bloqueado"
+  },
+  "settings": {
+    "message": "Ajustes"
+  },
+  "dialogWarning": {
+    "message": "Advertencia"
+  },
+  "lockWarning": {
+    "message": "Una vez que bloquees el límite de tiempo, no podrás cambiarlo hasta mañana. ¿Seguro que quieres continuar?"
+  },
+  "cancel": {
+    "message": "Cancelar"
+  },
+  "confirmLock": {
+    "message": "Sí, bloquear el tiempo"
+  },
+  "urlNotRecognized": {
+    "message": "No se pudo reconocer \"$1\""
+  },
+  "urlAlreadyRestricted": {
+    "message": "$1 ya está restringido"
+  },
+  "limitRangeError": {
+    "message": "El límite debe estar entre 1 y 1440 minutos"
+  },
+  "enterDailyLimit": {
+    "message": "Introduce un límite diario en minutos"
+  },
+  "todayUsage": {
+    "message": "$1 hoy"
+  },
+  "zeroToday": {
+    "message": "0m hoy"
+  },
+  "totalUsage": {
+    "message": "Total: $1"
+  },
+  "removeSite": {
+    "message": "Eliminar sitio"
+  },
+  "removeSiteAria": {
+    "message": "Eliminar $1"
+  },
+  "options": {
+    "message": "Opciones"
+  },
+  "optionsDescription": {
+    "message": "Configura los ajustes de Time Shield desde el panel de la extensión. ¡Pronto habrá más opciones!"
+  },
+  "about": {
+    "message": "Acerca de Time Shield"
+  },
+  "aboutDescription": {
+    "message": "Time Shield te ayuda a gestionar el tiempo que pasas en sitios web específicos registrando el uso y estableciendo límites diarios."
+  },
+  "supportTitle": {
+    "message": "Apoya Time Shield"
+  },
+  "supportDescription": {
+    "message": "Time Shield es gratuito y de código abierto: tus datos nunca salen de tu dispositivo. Si te resulta útil, considera una donación."
+  },
+  "supportDonate": {
+    "message": "Donar"
+  },
+  "version": {
+    "message": "Versión:"
+  },
+  "privacy": {
+    "message": "Privacidad:"
+  },
+  "privacyValue": {
+    "message": "Todos los datos se almacenan localmente en tu dispositivo"
+  },
+  "github": {
+    "message": "GitHub:"
+  },
+  "contentTitle": {
+    "message": "Time Shield - Límite de tiempo alcanzado"
+  },
+  "contentHeading": {
+    "message": "Se acabó el tiempo"
+  },
+  "contentSubtitle": {
+    "message": "Has alcanzado tu límite diario para este sitio web"
+  },
+  "contentCountdownLabel": {
+    "message": "Tiempo hasta el reinicio"
+  },
+  "contentMessage1": {
+    "message": "Tómate un descanso y vuelve mañana."
+  },
+  "contentMessage2": {
+    "message": "Tu límite de tiempo se reiniciará a medianoche."
+  },
+  "contentFooter": {
+    "message": "Protegido por Time Shield"
+  },
+  "contentGrace": {
+    "message": "Dame 5 minutos más"
+  },
+  "statusPaused": {
+    "message": "En pausa"
+  },
+  "pausedBanner": {
+    "message": "En pausa — la restricción está desactivada. Se reanuda en $1."
+  },
+  "resume": {
+    "message": "Reanudar"
+  },
+  "pause": {
+    "message": "Pausa"
+  },
+  "pause15min": {
+    "message": "Por 15 minutos"
+  },
+  "pause1h": {
+    "message": "Por 1 hora"
+  },
+  "pauseUntilTomorrow": {
+    "message": "Hasta mañana"
+  },
+  "onboardingTitle": {
+    "message": "Bienvenido a Time Shield"
+  },
+  "onboardingDescription": {
+    "message": "Añade algunos sitios en los que quieras pasar menos tiempo. Toca uno para empezar a proteger tu tiempo."
+  },
+  "skipOnboarding": {
+    "message": "Omitir — añadiré los míos"
+  },
+  "onboardingFinish": {
+    "message": "Listo"
+  }
+}

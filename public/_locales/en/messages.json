@@ -1,0 +1,218 @@
+{
+  "appName": {
+    "message": "Time Shield"
+  },
+  "appDescription": {
+    "message": "Take control of your online time with Time Shield - A powerful productivity tool that helps you manage and limit time spent on specific websites. Set daily limits, track usage, and stay focused."
+  },
+  "statusLocked": {
+    "message": "Locked"
+  },
+  "statusUnlocked": {
+    "message": "Unlocked"
+  },
+  "lockedBanner": {
+    "message": "Settings are locked. They unlock at midnight in $1."
+  },
+  "remainingToday": {
+    "message": "Remaining today"
+  },
+  "dailyLimit": {
+    "message": "Daily limit"
+  },
+  "dailyLimitUsage": {
+    "message": "Daily limit usage"
+  },
+  "limitReached": {
+    "message": "Limit reached for today. Time is locked until midnight."
+  },
+  "usedToday": {
+    "message": "$1 used today"
+  },
+  "noLimitSet": {
+    "message": "No daily limit set yet."
+  },
+  "noLimitSetCta": {
+    "message": "Set one below"
+  },
+  "noLimitSetTail": {
+    "message": "to start protecting your time."
+  },
+  "addSite": {
+    "message": "Add a site"
+  },
+  "websiteToLimit": {
+    "message": "Website to limit"
+  },
+  "urlPlaceholder": {
+    "message": "youtube.com, reddit, x.com"
+  },
+  "currentTabHint": {
+    "message": "Current tab: $1"
+  },
+  "addCurrentSite": {
+    "message": "Add"
+  },
+  "minUnit": {
+    "message": "min"
+  },
+  "limitHint": {
+    "message": "Applies to all restricted sites · resets at midnight"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saved": {
+    "message": "Saved"
+  },
+  "restrictedSites": {
+    "message": "Restricted sites"
+  },
+  "loadingRestrictedSites": {
+    "message": "Loading restricted sites"
+  },
+  "noRestrictedSites": {
+    "message": "No restricted sites yet"
+  },
+  "noRestrictedSitesHint": {
+    "message": "Add your first site above to start reclaiming your time."
+  },
+  "lockTime": {
+    "message": "Lock time limit"
+  },
+  "timeLocked": {
+    "message": "Time locked"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "dialogWarning": {
+    "message": "Warning"
+  },
+  "lockWarning": {
+    "message": "Once you lock the time limit, you won't be able to change it until tomorrow. Are you sure you want to proceed?"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "confirmLock": {
+    "message": "Yes, Lock Time"
+  },
+  "urlNotRecognized": {
+    "message": "Couldn't recognize \"$1\""
+  },
+  "urlAlreadyRestricted": {
+    "message": "$1 is already restricted"
+  },
+  "limitRangeError": {
+    "message": "Limit must be between 1 and 1440 minutes"
+  },
+  "enterDailyLimit": {
+    "message": "Enter a daily limit in minutes"
+  },
+  "todayUsage": {
+    "message": "$1 today"
+  },
+  "zeroToday": {
+    "message": "0m today"
+  },
+  "totalUsage": {
+    "message": "Total: $1"
+  },
+  "removeSite": {
+    "message": "Remove site"
+  },
+  "removeSiteAria": {
+    "message": "Remove $1"
+  },
+  "options": {
+    "message": "Options"
+  },
+  "optionsDescription": {
+    "message": "Configure your Time Shield settings from the extension popup. More options coming soon!"
+  },
+  "about": {
+    "message": "About Time Shield"
+  },
+  "aboutDescription": {
+    "message": "Time Shield helps you manage your time spent on specific websites by tracking usage and setting daily limits."
+  },
+  "supportTitle": {
+    "message": "Support Time Shield"
+  },
+  "supportDescription": {
+    "message": "Time Shield is free and open source — your data never leaves your device. If it helps you, consider a donation."
+  },
+  "supportDonate": {
+    "message": "Donate"
+  },
+  "version": {
+    "message": "Version:"
+  },
+  "privacy": {
+    "message": "Privacy:"
+  },
+  "privacyValue": {
+    "message": "All data is stored locally on your device"
+  },
+  "github": {
+    "message": "GitHub:"
+  },
+  "contentTitle": {
+    "message": "Time Shield - Time Limit Reached"
+  },
+  "contentHeading": {
+    "message": "Time's Up"
+  },
+  "contentSubtitle": {
+    "message": "You've reached your daily limit for this website"
+  },
+  "contentCountdownLabel": {
+    "message": "Time until reset"
+  },
+  "contentMessage1": {
+    "message": "Take a break and come back tomorrow."
+  },
+  "contentMessage2": {
+    "message": "Your time limit will reset at midnight."
+  },
+  "contentFooter": {
+    "message": "Protected by Time Shield"
+  },
+  "contentGrace": {
+    "message": "Give me 5 more minutes"
+  },
+  "statusPaused": {
+    "message": "Paused"
+  },
+  "pausedBanner": {
+    "message": "Paused — enforcement is off. Resumes in $1."
+  },
+  "resume": {
+    "message": "Resume"
+  },
+  "pause": {
+    "message": "Pause"
+  },
+  "pause15min": {
+    "message": "For 15 minutes"
+  },
+  "pause1h": {
+    "message": "For 1 hour"
+  },
+  "pauseUntilTomorrow": {
+    "message": "Until tomorrow"
+  },
+  "onboardingTitle": {
+    "message": "Welcome to Time Shield"
+  },
+  "onboardingDescription": {
+    "message": "Add a few sites you want to spend less time on. Tap one to start protecting your time."
+  },
+  "skipOnboarding": {
+    "message": "Skip — I'll add my own"
+  },
+  "onboardingFinish": {
+    "message": "Done"
+  }
+}
